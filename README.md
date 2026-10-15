@@ -57,4 +57,4 @@ Five workers keep the main thread free. The decode worker runs LibRaw compiled t
 
 Copyright (c) 2026 ZahakJ. Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). Commercial licences on other terms are available from the copyright holder.
 
-Bundled: LibRaw (CDDL-1.0 or LGPL-2.1, via libraw-wasm, which also carries Little CMS), SQLite (public domain), onnxruntime-web (MIT), React (MIT), IBM Plex fonts (OFL-1.1, subset; `public/fonts/OFL.txt`), the lensfun database (CC BY-SA 3.0; `public/lensfun/LICENSE`). The AI models are downloaded at setup under their own licenses, listed in [MODELS.md](docs/MODELS.md).
+Bundled: LibRaw (CDDL-1.0 or LGPL-2.1, via libraw-wasm, which also carries Little CMS), SQLite (public domain), onnxruntime-web (MIT), React (MIT), IBM Plex fonts (OFL-1.1, subset; `src/styles/fonts/OFL.txt`), the lensfun database (CC BY-SA 3.0; `public/lensfun/LICENSE`). The AI models are downloaded at setup under their own licenses, listed in [MODELS.md](docs/MODELS.md).

@@ -1,32 +1,32 @@
 /* Self-hosted IBM Plex, latin-basic subsets (U+0000-00FF, U+2013-2044,
-   U+2190-2199), OFL — see public/fonts/OFL.txt. No CDN: albedo runs offline. */
+   U+2190-2199), OFL — see fonts/OFL.txt. No CDN: albedo runs offline. */
 @font-face {
   font-family: 'IBM Plex Sans';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+  src: url('./fonts/IBMPlexSans-Regular.woff2') format('woff2');
 }
 @font-face {
   font-family: 'IBM Plex Sans';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/IBMPlexSans-Medium.woff2') format('woff2');
+  src: url('./fonts/IBMPlexSans-Medium.woff2') format('woff2');
 }
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+  src: url('./fonts/IBMPlexMono-Regular.woff2') format('woff2');
 }
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+  src: url('./fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
 *, *::before, *::after { box-sizing: border-box; }

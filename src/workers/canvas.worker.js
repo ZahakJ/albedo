@@ -37,8 +37,8 @@ const fail = (id, message) => post({ type: CV.ERROR, re: id, message })
 const fontReady = (async () => {
   try {
     const faces = [
-      new FontFace('IBM Plex Sans', "url('/fonts/IBMPlexSans-Regular.woff2')", { weight: '400' }),
-      new FontFace('IBM Plex Sans', "url('/fonts/IBMPlexSans-Medium.woff2')", { weight: '500' }),
+      new FontFace('IBM Plex Sans', `url(${new URL('../styles/fonts/IBMPlexSans-Regular.woff2', import.meta.url)})`, { weight: '400' }),
+      new FontFace('IBM Plex Sans', `url(${new URL('../styles/fonts/IBMPlexSans-Medium.woff2', import.meta.url)})`, { weight: '500' }),
     ]
     await Promise.all(faces.map((f) => f.load()))
     for (const f of faces) self.fonts.add(f)
