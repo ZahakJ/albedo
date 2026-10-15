@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><base href="/"><title>albedo tone harness</title></head>
+  <body>
+    <!-- blank harness: tone.e2e.mjs drives everything via page.evaluate()
+         dynamic imports so arbitrary EditDocs reach the render worker without
+         UI plumbing; raw.html is unsuitable because it auto-boots a decode -->
+    <canvas id="view" width="192" height="128"></canvas>
+    <pre id="out"></pre>
+  </body>
+</html>

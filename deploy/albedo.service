@@ -1,0 +1,18 @@
+[Unit]
+Description=albedo — RAW photo developer (static site)
+After=network-online.target
+
+[Service]
+# Serves the built site (npm run build) on 127.0.0.1:8021. http.server is
+# threaded: on first load the workers fetch their wasm in parallel, and a
+# serialising server would hold the page behind the largest one. It maps
+# .wasm to application/wasm and .js to text/javascript, so streaming
+# compilation and the module workers work. albedo is one document with no
+# router, so no fallback route is needed.
+WorkingDirectory=%h/albedo/dist
+ExecStart=/usr/bin/python3 -m http.server 8021 --bind 127.0.0.1
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

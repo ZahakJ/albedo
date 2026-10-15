@@ -1,0 +1,1 @@
+[{"maker":"Hasselblad","model":"L1D-20c & compatibles","cropFactor":2.8,"focal":[10,10],"distortion":{"model":"ptlens","points":[[10,0.013,-0.071,0.021]]}},{"maker":"Hasselblad","model":"L2D-20c & compatibles","cropFactor":1.953,"focal":[12.3,12.3],"aspectRatio":1.33333,"distortion":{"model":"ptlens","points":[[12.3,-0.0167982,0.00725109,-0.03131]]}}]

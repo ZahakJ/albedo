@@ -1,0 +1,54 @@
+/* albedo manual: neutral greys so photos read true, one amber accent. Only
+   the light and navy themes are restyled; the others stay stock. */
+
+html.light {
+    --bg: #f4f4f4;
+    --fg: #1c1c1c;
+    --sidebar-bg: #ececec;
+    --sidebar-fg: #2a2a2a;
+    --sidebar-non-existant: #8a8a8a;
+    --sidebar-active: #b5761c;
+    --sidebar-spacer: #dcdcdc;
+    --scrollbar: #8a8a8a;
+    --icons: #6f6f6f;
+    --icons-hover: #1c1c1c;
+    --links: #a8681a;
+    --inline-code-color: #1c1c1c;
+    --theme-popup-bg: #fafafa;
+    --theme-popup-border: #dcdcdc;
+    --theme-hover: #e6e6e6;
+    --quote-bg: #ececec;
+    --quote-border: #dcdcdc;
+    --table-border-color: #dcdcdc;
+    --table-header-bg: #e8e8e8;
+    --table-alternate-bg: #efefef;
+    --searchbar-border-color: #dcdcdc;
+    --searchbar-bg: #fafafa;
+}
+
+html.navy {
+    --bg: #1c1c1c;
+    --fg: #e6e6e6;
+    --sidebar-bg: #161616;
+    --sidebar-fg: #cfcfcf;
+    --sidebar-non-existant: #6f6f6f;
+    --sidebar-active: #e8a33d;
+    --sidebar-spacer: #2a2a2a;
+    --scrollbar: #6f6f6f;
+    --icons: #9a9a9a;
+    --icons-hover: #e6e6e6;
+    --links: #e8a33d;
+    --inline-code-color: #e6e6e6;
+    --theme-popup-bg: #232323;
+    --theme-popup-border: #333;
+    --theme-hover: #2a2a2a;
+    --quote-bg: #232323;
+    --quote-border: #333;
+    --table-border-color: #333;
+    --table-header-bg: #262626;
+    --table-alternate-bg: #202020;
+    --searchbar-border-color: #333;
+    --searchbar-bg: #232323;
+}
+
+.albedo-home { margin-inline-start: 1em; font-weight: 600; color: var(--links) !important; text-decoration: none; }

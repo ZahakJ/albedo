@@ -1,0 +1,21 @@
+/* ── narrow screens ──────────────────────────────────────────────────────
+   Imported last so these win over the component sheets at equal specificity.
+   No phone-specific UI, just room for the photo: the side panels that are
+   reference (navigator, metadata, preset rail) step aside, and Develop stacks
+   the image over its panel instead of squeezing both into one row. */
+@media (max-width: 760px) {
+  .topbar { gap: var(--sp-2); padding: 0 var(--sp-2); }
+  .topbar-file, .topbar-sep { display: none; }
+  .surface-seg .seg-btn { min-width: 0; padding: 0 var(--sp-2); }
+  .topbar-backend, .topbar-zoom { display: none; }
+  .navigator, .metapanel, .preset-rail { display: none; }
+  .develop { flex-direction: column; }
+  .develop > .canvas-mat { flex: none; height: 52vh; }
+  .develop > .panel {
+    width: auto;
+    flex: 1;
+    min-height: 0;
+    border-left: 0;
+    border-top: 1px solid var(--g-line);
+  }
+}

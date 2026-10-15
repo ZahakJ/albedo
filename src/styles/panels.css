@@ -1,0 +1,234 @@
+/* Develop right-panel furniture: histogram block, collapsible sections,
+   curve editor, mixer. Same 60fps rules as controls.css: sections keep
+   layout/paint containment; collapse height-animates via the
+   grid-template-rows 1fr↔0fr trick (bodies stay mounted). */
+
+/* ── histogram block: pinned above the scrolling sections ─────────────── */
+.histo-block {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--sp-3);
+  background: var(--g-panel);
+  border-bottom: 1px solid var(--g-line);
+}
+
+.histo { position: relative; }
+
+.histo-canvas {
+  display: block;
+  width: 100%;
+  height: calc(96px * var(--ui-scale));
+  background: var(--g-well);
+  border: 1px solid var(--g-line);
+  border-radius: 3px;
+}
+
+/* clip indicator triangles — chrome side; amber ring only when the persistent
+   overlay is on (the histogram sits well clear of the image, so it's allowed) */
+.clip-toggle {
+  position: absolute;
+  top: 3px;
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-lo);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.clip-sh { left: 3px; }
+.clip-hl { right: 3px; }
+.clip-toggle:hover { color: var(--ink-mid); }
+.clip-toggle.is-lit { color: var(--ink-hi); }
+.clip-toggle.is-on { border-color: var(--lamp); }
+
+.exif-strip {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-dense);
+  color: var(--ink-lo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* histogram region-drag: zone highlight + label (Lightroom behavior) */
+.histo-canvas { cursor: ew-resize; touch-action: none; }
+.histo-zone {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  display: none;
+  background: rgba(255, 255, 255, 0.055);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+.histo-zone-label {
+  position: absolute;
+  left: calc(22px * var(--ui-scale));
+  bottom: 3px;
+  display: none;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  color: var(--ink-mid);
+  pointer-events: none;
+}
+
+/* ── collapsible sections ─────────────────────────────────────────────── */
+.sec { padding-bottom: var(--sp-2); }
+.sec.is-open { padding-bottom: var(--sp-4); }
+
+.sec-row { display: flex; align-items: center; gap: var(--sp-1); }
+.sec-row .sec-head { width: auto; flex: 1; min-width: 0; }
+.sec-actions { display: flex; align-items: center; gap: 3px; flex: none; }
+
+/* header-row micro buttons: AUTO, TAT crosshair, WB eyedropper */
+.sec-btn {
+  height: calc(16px * var(--ui-scale));
+  padding: 0 calc(5px * var(--ui-scale));
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--ink-lo);
+  border: 1px solid transparent;
+  border-radius: 2px;
+}
+.sec-btn:hover { color: var(--ink-hi); background: var(--g-well); }
+.sec-icon { display: grid; place-items: center; width: calc(18px * var(--ui-scale)); padding: 0; }
+.sec-btn.is-on { color: var(--ink-hi); background: var(--g-well); border-color: var(--lamp); }
+
+/* B&W chip — section-header toggle */
+.bw-chip {
+  height: calc(16px * var(--ui-scale));
+  padding: 0 calc(7px * var(--ui-scale));
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  color: var(--ink-lo);
+  border: 1px solid var(--g-line);
+  border-radius: 8px;
+}
+.bw-chip:hover { color: var(--ink-hi); border-color: var(--g-line-hi); }
+.bw-chip.is-on { color: var(--ink-hi); background: var(--g-well); border-color: var(--lamp); }
+
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  height: calc(20px * var(--ui-scale));
+  text-align: left;
+}
+
+.sec-head .sec-title { margin-bottom: 0; }
+.sec-head:hover .sec-title, .sec-head:hover .sec-caret { color: var(--ink-hi); }
+
+.sec-caret {
+  flex: none;
+  color: var(--ink-lo);
+  transition: transform var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.sec.is-open .sec-caret { transform: rotate(90deg); }
+
+/* collapse: grid-template-rows 1fr↔0fr height animation. [hidden] stays on
+   .sec-body as the state hook (CSS + tests), so display must stay grid. */
+.sec-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--t-med) var(--ease);
+}
+.sec-body[hidden] { display: grid; grid-template-rows: 0fr; }
+.sec-inner { overflow: hidden; min-height: 0; padding-top: var(--sp-1); }
+.sec-body[hidden] .sec-inner {
+  visibility: hidden;
+  transition: visibility 0s var(--t-med); /* hide after the fold lands */
+}
+
+.panel-export { padding-top: var(--sp-3); }
+
+/* ── curve editor ─────────────────────────────────────────────────────── */
+.curve:focus-visible { outline-offset: 2px; }
+
+.curve-canvas {
+  display: block;
+  width: 100%;
+  height: calc(196px * var(--ui-scale));
+  background: var(--g-well);
+  border: 1px solid var(--g-line);
+  border-radius: 3px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ── mixer ────────────────────────────────────────────────────────────── */
+.mix-seg { margin-bottom: var(--sp-2); }
+.mix-seg .seg-btn { flex: 1; }
+
+.mix-row, .bw-row {
+  position: relative;
+  padding-bottom: calc(4px * var(--ui-scale)); /* hue underline + 1px breathing gap under the track */
+}
+
+/* per-band hue strip — data-adjacent color, 40% opacity, sanctioned */
+.mix-hue {
+  position: absolute;
+  left: var(--sp-1);
+  right: var(--sp-1);
+  bottom: 0;
+  height: 3px;
+  border-radius: 0 0 1px 1px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+/* ── grading wheels ───────────────────────────────────────────────────── */
+.grade-seg { margin-bottom: var(--sp-2); }
+.grade-seg .seg-btn { flex: 1; }
+
+.gwheels {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+.gwheels.is-all { justify-content: space-between; }
+
+.gwheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.gwheel-canvas {
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+  border-radius: 50%;
+}
+.gwheel-name {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--ink-lo);
+  user-select: none;
+}
+.gwheel-val {
+  min-width: 3ch;
+  text-align: center;
+  font-size: var(--fs-dense);
+  color: var(--ink-lo);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+.gwheel-val.is-set { color: var(--ink-hi); }
+.gwheel-val:hover { color: var(--ink-hi); }
+
+.mix-red .mix-hue, .bw-red .mix-hue { background: linear-gradient(90deg, hsl(345 55% 48%), hsl(15 55% 48%)); }
+.mix-orange .mix-hue, .bw-orange .mix-hue { background: linear-gradient(90deg, hsl(15 55% 48%), hsl(45 55% 48%)); }
+.mix-yellow .mix-hue, .bw-yellow .mix-hue { background: linear-gradient(90deg, hsl(45 55% 48%), hsl(75 45% 46%)); }
+.mix-green .mix-hue, .bw-green .mix-hue { background: linear-gradient(90deg, hsl(75 45% 42%), hsl(150 45% 42%)); }
+.mix-aqua .mix-hue, .bw-aqua .mix-hue { background: linear-gradient(90deg, hsl(150 45% 44%), hsl(195 50% 48%)); }
+.mix-blue .mix-hue, .bw-blue .mix-hue { background: linear-gradient(90deg, hsl(195 50% 48%), hsl(255 50% 55%)); }
+.mix-purple .mix-hue, .bw-purple .mix-hue { background: linear-gradient(90deg, hsl(255 50% 55%), hsl(290 45% 52%)); }
+.mix-magenta .mix-hue, .bw-magenta .mix-hue { background: linear-gradient(90deg, hsl(290 45% 52%), hsl(345 55% 48%)); }

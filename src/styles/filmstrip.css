@@ -1,0 +1,71 @@
+/* Filmstrip: 88px dock under both surfaces, horizontally virtualized.
+   Items position via transform only; scroll does no layout work. */
+
+.filmstrip {
+  height: var(--strip-h);
+  flex: none;
+  background: var(--g-panel);
+  border-top: 1px solid var(--g-line);
+}
+
+.strip-scroller {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  contain: strict;
+  scrollbar-width: thin;
+  scrollbar-color: var(--g-line-hi) transparent;
+}
+
+.strip-space { position: relative; height: 100%; contain: layout style; }
+
+.scell {
+  position: absolute;
+  top: calc(12px * var(--ui-scale)); /* (strip-h − item) / 2 */
+  left: 0;
+  width: calc(64px * var(--ui-scale));
+  height: calc(64px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--g-well);
+  contain: layout paint style;
+  cursor: default;
+  user-select: none;
+}
+
+.scell:hover { outline: 1px solid var(--g-line-hi); outline-offset: -1px; }
+/* multi-selection members keep a quiet ring; the focused cell's heavy border
+   is the single sliding box below */
+.scell.is-sel { outline: 1px solid var(--g-line-hi); outline-offset: -1px; }
+
+/* focused-cell border: one absolutely-positioned box that slides between
+   cells (transform-only, 90ms) */
+.strip-sel {
+  position: absolute;
+  top: calc(12px * var(--ui-scale));
+  left: 0;
+  width: calc(64px * var(--ui-scale));
+  height: calc(64px * var(--ui-scale));
+  outline: 2px solid var(--ink-hi);
+  outline-offset: -1px;
+  transition: transform var(--t-fast) var(--ease);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scell img {
+  max-width: 100%;
+  max-height: 100%;
+  opacity: 0;
+  transition: opacity min(120ms, var(--t-med)) var(--ease);
+}
+.scell img.is-in { opacity: 1; }
+.scell.is-rejected img { opacity: 0.3; }
+
+/* color label as a thin base bar — content color, not chrome accent */
+.sbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; }
+.sbar.dot-red { background: var(--label-red); }
+.sbar.dot-yellow { background: var(--label-yellow); }
+.sbar.dot-green { background: var(--label-green); }
+.sbar.dot-blue { background: var(--label-blue); }

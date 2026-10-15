@@ -1,0 +1,1 @@
+[{"maker":"Pergear","model":"Pergear 60mm f/2.8 MK2 Macro","cropFactor":1.534,"focal":[60,60],"distortion":{"model":"ptlens","points":[[60,0.0023165,0.0016048,0.00410838]]}},{"maker":"Pergear","model":"Pergear 7.5mm f/2.8","cropFactor":2,"focal":[7.5,7.5],"aspectRatio":1.33333,"distortion":{"model":"ptlens","points":[[7.5,0.0299999,-0.078683,-0.245271]]}}]

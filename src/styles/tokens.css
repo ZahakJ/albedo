@@ -1,0 +1,104 @@
+/* albedo design tokens — the only place colors exist.
+   Chrome grays are strictly R=G=B: the surround must never bias color perception.
+   --lamp (amber) is the one colored accent and may never appear within 24px of the
+   image canvas — on-image affordances use neutral white/black pairs. */
+/* albedo is native-dark: the darkroom is the default everywhere. The light
+   theme exists for print-prep and daylight culling, opt-in via the topbar
+   toggle (persisted); html[data-theme] wins over the OS preference. */
+:root, :root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* chrome grays (dark value is canonical; Library honors OS scheme) */
+  --g-canvas:  light-dark(#e9e9e9, #1a1a1a);
+  --g-well:    light-dark(#f4f4f4, #141414);
+  --g-panel:   light-dark(#fbfbfb, #232323);
+  --g-raised:  light-dark(#ffffff, #2c2c2c);
+  --g-line:    light-dark(#d4d4d4, #3a3a3a);
+  --g-line-hi: light-dark(#b8b8b8, #4d4d4d);
+  --ink-hi:    light-dark(#1c1c1c, #e6e6e6);
+  --ink-mid:   light-dark(#585858, #9a9a9a);
+  --ink-lo:    light-dark(#8a8a8a, #6f6f6f);
+  --lamp:      light-dark(#8a5a10, #e8a33d);
+  --lamp-dim:  light-dark(#c9964a, #7a5a26);
+  --danger:    light-dark(#a03434, #e06c5a);
+  /* elevation + scrims — softer in daylight, deep in the darkroom */
+  --scrim:        light-dark(rgba(28, 28, 28, 0.22), rgba(0, 0, 0, 0.4));
+  --shadow-pop:   0 16px 48px light-dark(rgba(28, 28, 28, 0.25), rgba(0, 0, 0, 0.5));
+  --shadow-menu:  0 10px 32px light-dark(rgba(28, 28, 28, 0.22), rgba(0, 0, 0, 0.5));
+  --shadow-float: 0 8px 24px  light-dark(rgba(28, 28, 28, 0.2),  rgba(0, 0, 0, 0.45));
+  --shadow-chip:  0 4px 12px  light-dark(rgba(28, 28, 28, 0.18), rgba(0, 0, 0, 0.4));
+  /* clipping overlays — painted on-image by the engine, fixed in both themes */
+  --clip-hl: #ff3b30;
+  --clip-sh: #2f6fed;
+
+  /* ── UI scale ────────────────────────────────────────────────────────────
+     One dial for the whole chrome. Everything below that carries or contains
+     text derives from it, and a build-time pass wrote the same calc() around
+     the hardcoded lengths in the component sheets, so raising this grows the
+     boxes with the type instead of clipping it.
+
+     Deliberately NOT applied: the image canvas, the overlays drawn on it, and
+     every length the pointer math reads back. 17 components convert pointer
+     coordinates through getBoundingClientRect — crop, masks, heal, sliders,
+     curves — so the stage stays in untouched CSS pixels. (This is also why the
+     scale is tokens rather than `zoom` on the root, which would have dragged
+     all of that geometry into a scaled coordinate space.)
+
+     1 = the original 12px-base design. */
+  --ui-scale: 1.25;
+
+  /* spacing — 4px base */
+  --sp-1: calc(4px * var(--ui-scale)); --sp-2: calc(8px * var(--ui-scale));
+  --sp-3: calc(12px * var(--ui-scale)); --sp-4: calc(16px * var(--ui-scale));
+  --sp-6: calc(24px * var(--ui-scale)); --sp-8: calc(32px * var(--ui-scale));
+
+  /* z-layers */
+  --z-canvas: 0; --z-hud: 10; --z-panel: 20; --z-peek: 25;
+  --z-popover: 30; --z-palette: 40; --z-cheatsheet: 50;
+
+  /* control sizing. --track-h stays literal: a slider rail is a hairline and
+     scaling it just blurs the edge. */
+  --ctl-h: calc(24px * var(--ui-scale)); --icon-h: calc(28px * var(--ui-scale));
+  --track-h: 2px; --thumb: calc(10px * var(--ui-scale));
+  /* Panel widths grow at half the scale's excess, not the full rate: they hold
+     text but had slack around it — a label needs ~13px more at 1.25, not 80 —
+     and in a photo editor every px of chrome is image area not shown. Full-rate
+     growth also squeezed the library filter bar until its search field
+     collapsed. Written as base + damped growth rather than deriving a
+     --panel-grow var, so it re-resolves wherever --ui-scale is set, not only at
+     :root (a derived var would bake in the :root value and ignore overrides). */
+  --panel-w-l: calc(280px + (var(--ui-scale) - 1) * 140px);
+  --panel-w-r: calc(320px + (var(--ui-scale) - 1) * 160px);
+  --strip-h: calc(88px * var(--ui-scale)); --bar-h: calc(40px * var(--ui-scale));
+
+  /* type — self-hosted Plex subsets, @font-face in base.css */
+  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --fs-micro:  calc(9px  * var(--ui-scale)); /* uppercase section eyebrows */
+  --fs-mini:   calc(10px * var(--ui-scale));
+  --fs-dense:  calc(11px * var(--ui-scale));
+  --fs-ui:     calc(12px * var(--ui-scale));
+  --fs-header: calc(13px * var(--ui-scale));
+  --fs-tab:    calc(15px * var(--ui-scale));
+  --fs-hero:   calc(20px * var(--ui-scale));
+
+  /* motion */
+  --t-fast: 90ms; --t-med: 160ms; --t-slow: 200ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+:root[data-theme='light'] { color-scheme: light; }
+
+/* phones: the 1.25 dial was set for a desk monitor; on a narrow screen the
+   original size is already large enough and the chrome needs the room */
+@media (max-width: 760px) {
+  :root, :root[data-theme] { --ui-scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* [data-theme] variant: must outweigh the themed :root blocks above */
+  :root, :root[data-theme] { --t-fast: 0ms; --t-med: 0ms; --t-slow: 0ms; }
+}
+
+/* Develop follows the app theme. The light surround is still strictly neutral
+   gray (R=G=B) — dimmer judgment than a dark mat, but never a hue bias. */

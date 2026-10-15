@@ -1,0 +1,13 @@
+[book]
+title = "albedo manual"
+authors = ["ZahakJ"]
+language = "en"
+src = "src"
+
+[output.html]
+site-url = "/albedo/manual/"
+git-repository-url = "https://github.com/ZahakJ/albedo"
+default-theme = "light"
+preferred-dark-theme = "navy"
+additional-css = ["theme/manual.css"]
+additional-js = ["theme/manual.js"]

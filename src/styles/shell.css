@@ -1,0 +1,190 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--g-canvas);
+}
+
+.topbar {
+  position: relative; /* anchors the import progress line */
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--bar-h);
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  background: var(--g-panel);
+  border-bottom: 1px solid var(--g-line);
+  flex: none;
+}
+
+.topbar-sep { width: 1px; height: calc(16px * var(--ui-scale)); background: var(--g-line); flex: none; }
+.topbar-flex { flex: 1; }
+
+/* segmented toggles (surface, mixer axis, grading zone): one sliding raised
+   thumb (transform-only) instead of per-button backgrounds */
+.seg {
+  --seg-n: 2;
+  --seg-at: 0;
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--g-well);
+  border: 1px solid var(--g-line);
+  border-radius: 5px;
+}
+
+.seg-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px - (var(--seg-n) - 1) * 2px) / var(--seg-n));
+  background: var(--g-raised);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--g-line);
+  transform: translateX(calc(var(--seg-at) * (100% + 2px)));
+  transition: transform var(--t-med) var(--ease);
+  pointer-events: none;
+}
+.seg:has(> .seg-btn:nth-of-type(2).is-on) { --seg-at: 1; }
+.seg:has(> .seg-btn:nth-of-type(3).is-on) { --seg-at: 2; }
+.seg:has(> .seg-btn:nth-of-type(4).is-on) { --seg-at: 3; }
+.mix-seg { --seg-n: 3; }
+.grade-seg { --seg-n: 4; }
+.surface-seg { --seg-n: 3; } /* Library · Develop · Canvas */
+.surface-seg .seg-btn { flex: 1; min-width: calc(72px * var(--ui-scale)); text-align: center; }
+
+.seg-btn {
+  position: relative; /* rides above the sliding thumb */
+  height: calc(18px * var(--ui-scale));
+  padding: 0 var(--sp-3);
+  border-radius: 3px;
+  font-size: var(--fs-ui);
+  line-height: calc(18px * var(--ui-scale));
+  color: var(--ink-mid);
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.seg-btn:hover:not(:disabled) { color: var(--ink-hi); }
+.seg-btn.is-on { color: var(--ink-hi); }
+.seg-btn:disabled { color: var(--ink-lo); cursor: default; }
+
+/* icon buttons: 28px hit target, raised hover, 1px press-down */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: var(--icon-h);
+  height: var(--icon-h);
+  flex: none;
+  border-radius: 4px;
+  color: var(--ink-mid);
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.icon-btn:hover { color: var(--ink-hi); background: var(--g-raised); }
+
+/* slim import progress line, overlaying the topbar's bottom border */
+.import-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--lamp);
+  transform-origin: left;
+  transition: transform var(--t-fast) var(--ease);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* shimmer sweep while importing — duration keys off --t-med so
+   reduced-motion collapses it to a static line */
+.import-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: shimmer calc(var(--t-med) * 8) linear infinite;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+.topbar-import { color: var(--lamp); font-size: var(--fs-dense); }
+
+.wordmark {
+  font-size: var(--fs-tab);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--lamp);
+}
+
+.topbar-file {
+  color: var(--ink-mid);
+  font-size: var(--fs-ui);
+  max-width: 32vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-backend { color: var(--ink-lo); font-size: var(--fs-dense); flex: none; }
+
+.surface { flex: 1; min-height: 0; position: relative; }
+.fill { height: 100%; }
+.hidden { display: none; }
+
+/* surface switch: side furniture cross-fades + rises 4px; the canvas and the
+   grid never animate. display:none↔flex on the .fill wrapper replays this. */
+@keyframes surface-in { from { opacity: 0; transform: translateY(4px); } }
+.develop > .preset-rail,
+.develop > .panel-right,
+.library > .navigator,
+.library .filterbar,
+.canvas-surface > .tool-rail,
+.canvas-surface > .cv-panel {
+  animation: surface-in var(--t-med) var(--ease);
+}
+
+/* ── lights-out (L): stage the photo, sink the chrome ─────────────────────
+   dim = chrome at 15%, still clickable; out = black stage, chrome inert */
+.topbar, .filmstrip, .preset-rail, .panel-right, .navigator, .filterbar, .tool-rail {
+  transition: opacity var(--t-med) var(--ease);
+}
+.shell[data-lights] :is(.topbar, .filmstrip, .preset-rail, .panel-right, .navigator, .filterbar, .tool-rail) {
+  opacity: 0.15;
+}
+.shell[data-lights='out'] :is(.topbar, .filmstrip, .preset-rail, .panel-right, .navigator, .filterbar, .tool-rail) {
+  opacity: 0;
+  pointer-events: none;
+}
+.shell[data-lights='out'],
+.shell[data-lights='out'] .canvas-mat,
+.shell[data-lights='out'] .canvas-stage,
+.shell[data-lights='out'] .grid-scroller { background: #000; }
+
+/* first run: the whole window is the invitation */
+.dropzone {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-8);
+}
+
+.dropzone-frame {
+  padding: var(--sp-8) calc(var(--sp-8) * 2);
+  border: 1px dashed var(--g-line-hi);
+  border-radius: 8px;
+  text-align: center;
+  transition: border-color var(--t-med) var(--ease), background var(--t-med) var(--ease);
+}
+
+.dropzone.is-over .dropzone-frame {
+  border-color: var(--lamp);
+  background: var(--g-panel);
+}
+
+.dropzone-hero { font-size: var(--fs-hero); color: var(--ink-hi); }
+.dropzone-sub { margin-top: var(--sp-2); color: var(--ink-mid); }
+.dropzone-privacy { color: var(--ink-lo); font-size: var(--fs-dense); }

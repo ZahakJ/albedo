@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>albedo</title>
+<meta name="description" content="A RAW photo developer that runs in the browser: GPU develop, local AI masks, removal and denoise, Lightroom XMP in and out. Offline, private, AGPL.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f4f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="albedo">
+<meta property="og:description" content="A RAW photo developer that runs in the browser. Local AI, Lightroom XMP in and out, offline.">
+<meta property="og:image" content="https://zahakj.github.io/albedo/media/banner.webp">
+<meta property="og:image:width" content="1640">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="wordmark" href="./" aria-label="albedo, home"><img src="icon.svg" alt="" width="26" height="26">albedo</a>
+    <nav aria-label="Site">
+      <ul>
+        <li><a href="./manual/">Manual</a></li>
+        <li><a href="https://github.com/ZahakJ/albedo">GitHub</a></li>
+        <li><a class="nav-open" href="./app/">Open albedo</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <h1 id="hero-title">A RAW developer that runs in your browser.</h1>
+    <p class="lede">Catalog, cull and develop on the GPU. Mask, remove and denoise with AI that never leaves your machine. Take your edits to Lightroom and back.</p>
+    <div class="actions">
+      <a class="button primary" href="./app/">Open albedo</a>
+      <a class="button" href="./manual/">Read the manual</a>
+      <a class="button" href="https://github.com/ZahakJ/albedo">Source</a>
+    </div>
+    <figure class="shot">
+      <img src="media/banner.webp" width="1640" height="640" alt="The Develop view: a RAW photo of a tea plantation, the navigator and presets on the left, the histogram, Profile and Tone panels on the right.">
+    </figure>
+  </div>
+</section>
+
+<section aria-labelledby="tour-title">
+  <div class="wrap">
+    <h2 id="tour-title" class="visually-hidden">Tour</h2>
+
+    <article class="feature">
+      <figure class="shot">
+        <img src="media/library.webp" width="1600" height="1000" loading="lazy" alt="The Library: a grid of photos with flags and star ratings, the date tree on the left and file details on the right.">
+      </figure>
+      <div>
+        <p class="eyebrow">Library</p>
+        <h3>Cull from the keyboard</h3>
+        <ul>
+          <li><kbd>P</kbd> <kbd>X</kbd> <kbd>U</kbd> flag, <kbd>0</kbd>–<kbd>5</kbd> rate, <kbd>6</kbd>–<kbd>9</kbd> label.</li>
+          <li>Full-screen cull, compare and survey; the next photos are ready before you get there.</li>
+          <li>Albums, smart collections, keywords, a capture-date tree.</li>
+          <li>10,000 photos filter in about 15 ms.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="feature flip">
+      <figure class="shot">
+        <img src="media/masks.webp" width="1600" height="1000" loading="lazy" alt="Masking: a lake at dawn with the sky selected by the AI sky mask, shown as a red wash.">
+      </figure>
+      <div>
+        <p class="eyebrow">Local AI</p>
+        <h3>Masks, Remove and Denoise, on your GPU</h3>
+        <ul>
+          <li>Subject, sky, background, or any object from a click or a box.</li>
+          <li>Remove: paint over a distraction, or click it, and it is filled from its surroundings.</li>
+          <li>AI Denoise works on the RAW data; 45 megapixels in about four seconds.</li>
+          <li>No account, no credits, no upload.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="feature">
+      <figure class="shot">
+        <img src="media/develop.webp" width="1600" height="1000" loading="lazy" alt="Develop: a motorcycle on autumn leaves; the Lens panel names the matched lens profile.">
+      </figure>
+      <div>
+        <p class="eyebrow">Develop</p>
+        <h3>Every slider in the next frame</h3>
+        <ul>
+          <li>The whole edit runs on the GPU: about 2 ms a frame on a 61-megapixel file.</li>
+          <li>RCD demosaicing, a GPU X-Trans path, highlights rebuilt instead of turning magenta.</li>
+          <li>An AgX look by default, or Adobe and RawTherapee camera profiles.</li>
+          <li>Lens corrections from the lensfun database, applied on open.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="feature flip">
+      <figure class="shot">
+        <img src="media/export.webp" width="1600" height="1000" loading="lazy" alt="The export dialog: JPEG, PNG, TIFF, DNG and Original formats, and an XMP sidecar option.">
+      </figure>
+      <div>
+        <p class="eyebrow">No lock-in</p>
+        <h3>Your files, your edits, anywhere</h3>
+        <ul>
+          <li>Lightroom and Camera Raw <code>.xmp</code> sidecars and presets, read and written.</li>
+          <li>Export the original with a sidecar, a DNG with the edit inside, or a 16-bit TIFF.</li>
+          <li>Installs as an app, works offline, opens RAW files from the desktop.</li>
+          <li>Free software under the AGPL.</li>
+        </ul>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="numbers" aria-labelledby="numbers-title">
+  <div class="wrap">
+    <h2 id="numbers-title">Measured</h2>
+    <dl>
+      <div><dt>0.57 s</dt><dd>to export a 45 MP RAW as a full-resolution JPEG</dd></div>
+      <div><dt>2.3 ms</dt><dd>of GPU time per frame while dragging a slider on a 45 MP file, eight masks included</dd></div>
+      <div><dt>93 ms</dt><dd>to find the subject of a photo; 46 ms per click to select an object</dd></div>
+      <div><dt>1.0 GB</dt><dd>peak memory to open and export a 61 MP file</dd></div>
+    </dl>
+    <p class="fine">RTX 4070 SUPER, Chromium 151. Method and every number: <a href="https://github.com/ZahakJ/albedo/blob/main/docs/BENCHMARKS.md">BENCHMARKS.md</a>.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>albedo is free software under the <a href="https://github.com/ZahakJ/albedo/blob/main/LICENSE">GNU AGPL v3.0</a>. Photos: CC0 samples from <a href="https://raw.pixls.us">raw.pixls.us</a>.</p>
+  </div>
+</footer>
+</body>
+</html>

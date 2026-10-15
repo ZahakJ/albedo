@@ -1,0 +1,253 @@
+/* Views wave — compare (C), survey (N), cull (⇧C) + Develop HISTORY section.
+   On-image affordances (tags, ✕, badges, HUD) are neutral white-on-scrim;
+   amber appears only in chrome (history ticks, snapshot input). */
+
+/* ── shared ─────────────────────────────────────────────────────────────── */
+
+.view-hint {
+  flex: none;
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--g-line);
+  background: var(--g-panel);
+  text-align: center;
+  font-size: var(--fs-mini);
+  color: var(--ink-lo);
+  user-select: none;
+}
+
+.view-tag {
+  position: absolute;
+  top: calc(8px * var(--ui-scale));
+  left: calc(8px * var(--ui-scale));
+  padding: 2px calc(7px * var(--ui-scale));
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--fs-mini);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.is-reject { color: var(--danger); }
+
+/* ── compare: two-up ────────────────────────────────────────────────────── */
+
+.compare {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--g-canvas);
+}
+
+.cmp-panes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+}
+
+.cmp-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.cmp-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--g-well);
+  contain: layout paint style;
+}
+
+.cmp-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.cmp-info {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: var(--fs-dense);
+  color: var(--ink-mid);
+}
+.cmp-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-meta { display: flex; align-items: center; gap: var(--sp-2); flex: none; color: var(--ink-hi); }
+
+/* ── survey: best-fit tiles, FLIP reflow via WAAPI (transform-only) ─────── */
+
+.survey {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--g-canvas);
+}
+
+.svy-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+
+.svy-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--g-well);
+  contain: layout style;
+  cursor: default;
+  user-select: none;
+}
+.svy-tile:hover { outline: 1px solid var(--g-line-hi); outline-offset: -1px; }
+.svy-tile.is-focus { outline: 2px solid var(--ink-hi); outline-offset: -1px; }
+
+.svy-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.svy-x {
+  position: absolute;
+  top: calc(6px * var(--ui-scale));
+  right: calc(6px * var(--ui-scale));
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: var(--fs-dense);
+  line-height: calc(20px * var(--ui-scale));
+  text-align: center;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.svy-tile:hover .svy-x, .svy-x:focus-visible { opacity: 1; }
+.svy-x:hover { background: rgba(0, 0, 0, 0.8); }
+
+.svy-badges {
+  position: absolute;
+  left: calc(6px * var(--ui-scale));
+  bottom: calc(6px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  padding: 0 calc(6px * var(--ui-scale));
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: var(--fs-mini);
+  line-height: calc(16px * var(--ui-scale));
+  pointer-events: none;
+}
+
+/* ── cull: fullscreen black stage + HUD chip ────────────────────────────── */
+
+.cull {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  background: #000;
+}
+
+.cull-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* fills the stage even when the preview is smaller — cull is immersive */
+.cull-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform var(--t-med) var(--ease);
+  will-change: transform;
+}
+
+.cull-hud {
+  position: absolute;
+  left: 50%;
+  bottom: calc(28px * var(--ui-scale));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale));
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: var(--fs-dense);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hud-dot { color: rgba(255, 255, 255, 0.35); }
+.hud-flag, .hud-stars { min-width: calc(12px * var(--ui-scale)); text-align: center; }
+.cull .is-reject { color: #e06c5a; } /* fixed — the stage is black in both themes */
+
+/* ── develop HISTORY section ────────────────────────────────────────────── */
+
+.hist-list {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(240px * var(--ui-scale));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--g-line-hi) transparent;
+}
+
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  height: calc(22px * var(--ui-scale));
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-dense);
+  color: var(--ink-mid);
+  cursor: default;
+  user-select: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.hist-row:hover { background: var(--g-well); color: var(--ink-hi); }
+.hist-row.is-current { color: var(--ink-hi); }
+.hist-row.is-ahead { color: var(--ink-lo); } /* redo side of the ring */
+
+/* amber tick marks the current step — panel chrome, amber allowed */
+.hist-tick { width: 3px; height: calc(12px * var(--ui-scale)); flex: none; border-radius: 1px; background: transparent; }
+.hist-row.is-current .hist-tick { background: var(--lamp); }
+
+.hist-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.hist-snap-icon { flex: none; color: var(--ink-lo); }
+.hist-snap:hover .hist-snap-icon { color: var(--lamp); }
+
+.hist-input {
+  height: calc(20px * var(--ui-scale));
+  margin: 2px 0 calc(4px * var(--ui-scale));
+  padding: 0 var(--sp-1);
+  background: var(--g-well);
+  border: 1px solid var(--lamp);
+  border-radius: 3px;
+  font-size: var(--fs-dense);
+  color: var(--ink-hi);
+  outline: none;
+}

@@ -1,0 +1,336 @@
+/* Workflow overlays: ⌘K palette, '?' cheat-sheet, ⌘C copy dialog.
+   All float on a scrim well above the canvas; the ONLY amber in any overlay
+   is the palette's selected-row tick. */
+
+.overlay-scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--scrim);
+  animation: scrim-in var(--t-fast) var(--ease);
+}
+@keyframes scrim-in { from { opacity: 0; } }
+
+/* overlays open with a 90ms pop (scale 0.98 → 1 + fade); close is instant —
+   the element simply unmounts */
+@keyframes pop-in { from { opacity: 0; transform: scale(0.98); } }
+.palette, .copydlg, .exportdlg, .cheat-card, .cmenu {
+  animation: pop-in var(--t-fast) var(--ease);
+}
+.scrim-palette { z-index: var(--z-palette); padding-top: 14vh; }
+.scrim-sheet { z-index: var(--z-cheatsheet); align-items: center; padding: var(--sp-8); }
+
+/* ── command palette ────────────────────────────────────────────────────── */
+.palette {
+  width: min(calc(540px * var(--ui-scale)), calc(100vw - 48px));
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 6px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.palette-input {
+  width: 100%;
+  height: calc(38px * var(--ui-scale));
+  padding: 0 var(--sp-4);
+  background: none;
+  border: none;
+  outline: none;
+  border-bottom: 1px solid var(--g-line);
+  font-size: var(--fs-header);
+  color: var(--ink-hi);
+}
+.palette-input::placeholder { color: var(--ink-lo); }
+
+.palette-list { margin: 0; padding: var(--sp-1) 0; list-style: none; }
+
+.pal-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: calc(26px * var(--ui-scale));
+  padding: 0 var(--sp-3) 0 var(--sp-2);
+  color: var(--ink-mid);
+  cursor: default;
+}
+.pal-row.is-at { background: var(--g-panel); color: var(--ink-hi); }
+
+.pal-tick { width: 3px; height: calc(14px * var(--ui-scale)); border-radius: 1px; background: transparent; flex: none; }
+.pal-row.is-at .pal-tick { background: var(--lamp); } /* the only overlay amber */
+
+.pal-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-key { color: var(--ink-lo); font-size: var(--fs-dense); }
+.pal-none { padding: var(--sp-3) var(--sp-4); color: var(--ink-lo); }
+
+/* ── cheat-sheet ────────────────────────────────────────────────────────── */
+.cheat-card {
+  max-width: min(calc(880px * var(--ui-scale)), calc(100vw - 64px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: var(--sp-6) var(--sp-8);
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 8px;
+  box-shadow: var(--shadow-pop);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(calc(200px * var(--ui-scale)), 1fr));
+  gap: var(--sp-4) var(--sp-8);
+  align-content: start;
+  scrollbar-width: thin;
+}
+
+.cheat-group { min-width: 0; }
+
+.cheat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  height: calc(24px * var(--ui-scale));
+  color: var(--ink-mid);
+}
+.cheat-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cheat-key {
+  flex: none;
+  padding: 1px calc(6px * var(--ui-scale));
+  color: var(--ink-hi);
+  background: var(--g-well);
+  border: 1px solid var(--g-line);
+  border-radius: 3px;
+  font-size: var(--fs-dense);
+}
+
+/* ── copy-settings dialog ───────────────────────────────────────────────── */
+.copydlg {
+  width: calc(300px * var(--ui-scale));
+  padding: var(--sp-4);
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 6px;
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.copydlg .panel-header { margin-bottom: 0; }
+
+.copy-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 2px var(--sp-4); }
+
+.copy-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: calc(22px * var(--ui-scale));
+  color: var(--ink-mid);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+  user-select: none;
+}
+.copy-check:hover { color: var(--ink-hi); }
+.copy-check input { width: calc(12px * var(--ui-scale)); height: calc(12px * var(--ui-scale)); margin: 0; accent-color: var(--ink-mid); }
+
+.copy-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+.copy-actions .btn-primary { width: auto; padding: 0 var(--sp-4); }
+
+.btn-ghost { height: calc(28px * var(--ui-scale)); padding: 0 var(--sp-3); color: var(--ink-mid); border-radius: 3px; }
+.btn-ghost:hover { color: var(--ink-hi); }
+
+/* ── export dialog (⌘E) — chrome, so the progress fill may be amber ─────── */
+.exportdlg {
+  width: calc(384px * var(--ui-scale));
+  padding: var(--sp-4);
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 6px;
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.exportdlg .panel-header { margin-bottom: 0; }
+.exportdlg .slider { padding: 0; }
+/* no modified-dot here, so the label lines up with the other row labels */
+.exportdlg .slider-tick { display: none; }
+
+.exp-row { display: flex; align-items: center; gap: var(--sp-2); min-height: calc(24px * var(--ui-scale)); }
+.exp-label { flex: none; width: calc(68px * var(--ui-scale)); color: var(--ink-mid); font-size: var(--fs-ui); }
+
+.exp-seg { display: flex; gap: 2px; }
+.exp-seg button {
+  height: calc(22px * var(--ui-scale));
+  padding: 0 calc(6px * var(--ui-scale));
+  font-size: var(--fs-dense);
+  letter-spacing: 0.04em;
+  color: var(--ink-mid);
+  border: 1px solid var(--g-line);
+  border-radius: 3px;
+}
+.exp-seg button:hover { color: var(--ink-hi); border-color: var(--g-line-hi); }
+.exp-seg button.is-on { color: var(--ink-hi); background: var(--g-well); border-color: var(--g-line-hi); }
+
+.exp-input {
+  height: calc(22px * var(--ui-scale));
+  padding: 0 var(--sp-2);
+  background: var(--g-well);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 3px;
+  font-size: var(--fs-ui);
+  color: var(--ink-hi);
+  outline: none;
+}
+.exp-px { width: calc(56px * var(--ui-scale)); text-align: right; }
+.exp-unit { color: var(--ink-lo); font-size: var(--fs-dense); }
+.exp-name { flex: 1; min-width: 0; }
+.exp-sharpen { height: auto; }
+.exp-wm-check { height: auto; }
+
+/* preset row: dropdown + save-as flow */
+.exp-preset { flex: 1; min-width: 0; }
+.exp-preset-save { height: calc(22px * var(--ui-scale)); padding: 0 var(--sp-2); font-size: var(--fs-dense); }
+.exp-preset-name { flex: 1; min-width: 0; }
+
+/* filename token preview — the first file's resolved name */
+.exp-preview {
+  margin: calc(-1 * var(--sp-2)) 0 0 calc(68px * var(--ui-scale) + var(--sp-2)); /* under the input: label + gap */
+  font-size: var(--fs-mini);
+  color: var(--ink-lo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* watermark corner picker: 5 compact cells */
+.exp-corners button { width: calc(24px * var(--ui-scale)); padding: 0; }
+.exp-wmtext { flex: 1; min-width: 0; }
+
+/* ── context menu (right-click, app-wide) ───────────────────────────────── */
+.cmenu-scrim { position: fixed; inset: 0; z-index: var(--z-popover); }
+.cmenu-anchor { position: fixed; }
+
+.cmenu {
+  min-width: calc(184px * var(--ui-scale));
+  padding: var(--sp-1) 0;
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 5px;
+  box-shadow: var(--shadow-menu);
+  outline: none;
+  font-size: var(--fs-ui);
+}
+
+.cmenu-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  height: calc(24px * var(--ui-scale));
+  padding: 0 var(--sp-3);
+  color: var(--ink-mid);
+  text-align: left;
+  cursor: default;
+}
+.cmenu-row.is-at { background: var(--g-panel); color: var(--ink-hi); }
+.cmenu-row:disabled { color: var(--ink-lo); }
+.cmenu-row.is-danger { color: var(--danger); }
+.cmenu-row.is-danger.is-at { color: var(--danger); }
+
+.cmenu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmenu-key { flex: none; color: var(--ink-lo); font-size: var(--fs-dense); }
+.cmenu-caret { flex: none; color: var(--ink-lo); font-size: var(--fs-micro); }
+.cmenu-sep { height: 1px; margin: var(--sp-1) 0; background: var(--g-line); }
+
+.cmenu-subwrap { position: absolute; left: calc(100% - 4px); top: calc(-5px * var(--ui-scale)); }
+.cmenu-subwrap .cmenu { max-height: 40vh; overflow-y: auto; scrollbar-width: thin; }
+
+.cmenu-starset { display: flex; }
+.cmenu-dotset { display: flex; gap: 3px; }
+
+/* ── toasts (bottom-center, above the filmstrip) ────────────────────────── */
+.toast-stack {
+  position: fixed;
+  bottom: calc(var(--strip-h) + var(--sp-4));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  z-index: var(--z-popover);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: calc(30px * var(--ui-scale));
+  padding: 0 var(--sp-4);
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 5px;
+  box-shadow: var(--shadow-float);
+  color: var(--ink-hi);
+  font-size: var(--fs-ui);
+  white-space: nowrap;
+  animation: toast-in var(--t-med) var(--ease);
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+.toast.is-leaving { animation: toast-out var(--t-med) var(--ease) forwards; }
+@keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
+
+.toast-action { color: var(--lamp); font-size: var(--fs-ui); }
+.toast-action:hover { text-decoration: underline; }
+
+/* ── delete confirm ─────────────────────────────────────────────────────── */
+.confirmdlg { width: calc(340px * var(--ui-scale)); }
+.confirmdlg .panel-header { text-transform: uppercase; }
+.confirm-body { color: var(--ink-mid); font-size: var(--fs-ui); line-height: 1.5; }
+.btn-danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+
+/* batch progress: slim bar, amber fill */
+.exp-file {
+  color: var(--ink-mid);
+  font-size: var(--fs-dense);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exp-bar { height: 3px; border-radius: 2px; background: var(--g-line); overflow: hidden; }
+.exp-bar span {
+  display: block;
+  height: 100%;
+  background: var(--lamp);
+  transform-origin: left;
+  transition: transform var(--t-med) var(--ease);
+}
+
+/* ── tooltips — data-tip/data-tip-key, one fixed singleton (Tooltip.jsx) ── */
+.tip {
+  position: fixed;
+  z-index: var(--z-cheatsheet);
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  max-width: calc(300px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  background: var(--g-raised);
+  border: 1px solid var(--g-line-hi);
+  border-radius: 4px;
+  box-shadow: var(--shadow-chip);
+  font-size: var(--fs-dense);
+  color: var(--ink-hi);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.tip.is-on {
+  opacity: 1;
+  visibility: visible;
+  animation: tip-in var(--t-fast) var(--ease);
+}
+@keyframes tip-in { from { opacity: 0; transform: translateY(2px); } }
+.tip-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tip-key { margin-left: auto; color: var(--ink-lo); white-space: nowrap; }

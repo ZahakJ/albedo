@@ -1,0 +1,17 @@
+Lens calibration data in this directory is derived from the lensfun database
+(https://github.com/lensfun/lensfun, data/db/*.xml, branch master, commit 43f9e001ab66c4fcdd4f400463f13b72f94b2288,
+fetched 2026-10-15).
+
+Copyright (c) the lensfun project and its contributors; see
+https://github.com/lensfun/lensfun for the list of authors and calibrators.
+
+The lensfun database is licensed under the Creative Commons Attribution-Share
+Alike 3.0 license (CC BY-SA 3.0): https://creativecommons.org/licenses/by-sa/3.0/
+
+Changes: the XML was converted to JSON by albedo's scripts/build-lensfun.mjs,
+keeping cameras, mounts and the distortion (poly3/poly5/ptlens), TCA
+(linear/poly3) and vignetting (pa) calibration of each lens; other entries
+(acm models, crop, field of view, real focal length, lens centre) were dropped.
+
+These JSON files are distributed under the same CC BY-SA 3.0 license. This
+license applies to the data only; albedo's code is AGPL-3.0-only.

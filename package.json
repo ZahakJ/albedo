@@ -1,0 +1,32 @@
+{
+  "name": "albedo",
+  "private": true,
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Local-first RAW photo developer. The light a world reflects.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "setup-models": "node scripts/fetch-models.mjs",
+    "setup-lensfun": "node scripts/build-lensfun.mjs",
+    "test": "node test/run-all.mjs",
+    "test:unit": "node --test 'test/unit/**/*.test.mjs'"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
+    "libraw-wasm": "1.6.0",
+    "onnxruntime-web": "^1.27.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.62.1",
+    "vite": "^6.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}

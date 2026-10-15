@@ -1,0 +1,14 @@
+node_modules
+dist
+.DS_Store
+test/fixtures/
+public/models/
+public/ort/
+.env*
+*.key
+*.pem
+*.db
+build/
+.scratch/
+.cache
+.scale-profile/

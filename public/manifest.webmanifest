@@ -1,0 +1,30 @@
+{
+  "name": "albedo",
+  "short_name": "albedo",
+  "description": "RAW photo developer",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#1c1c1c",
+  "theme_color": "#1c1c1c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "image/x-raw": [".cr2", ".cr3", ".nef", ".nrw", ".arw", ".srf", ".sr2", ".dng", ".raf", ".orf", ".rw2", ".pef", ".srw", ".erf", ".kdc", ".3fr", ".mrw", ".iiq", ".rwl", ".x3f"],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+        "image/tiff": [".tif", ".tiff"],
+        "application/rdf+xml": [".xmp"]
+      },
+      "launch_type": "single-client"
+    }
+  ]
+}
