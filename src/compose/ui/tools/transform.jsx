@@ -110,7 +110,7 @@ const OPP = { tl: 'br', tr: 'bl', br: 'tl', bl: 'tr', t: 'b', b: 't', l: 'r', r:
 const UV = { tl: [0, 0], tr: [1, 0], br: [1, 1], bl: [0, 1], t: [0.5, 0], b: [0.5, 1], l: [0, 0.5], r: [1, 0.5] }
 
 export const transformTool = {
-  id: 'transform', key: 't', icon: 'transform', label: 'Transform (⌘T)', order: 2,
+  id: 'transform', key: null, icon: 'transform', label: 'Free transform (⌘T)', order: 2,
   cursor: () => 'default',
   Overlay: () => <Overlay />,
   Options: () => {
