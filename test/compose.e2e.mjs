@@ -257,6 +257,20 @@ for (let x = 30; x < 560; x += 10) { const p = await px(x, 110); if (p[0] < 0.5)
 check('type layer shapes and draws Arabic and Latin', tn?.bounds.w > 300 && dark > 5, `width ${tn?.bounds.w}, dark samples ${dark}`)
 await page.screenshot({ path: `${shots}/compose-type.png` })
 
+// ── shapes and layer styles ────────────────────────────────────────────────
+await newDoc(300, 200, { background: 'white' })
+const sh = await op('addShape', { x: 100, y: 60, shape: { type: 'rect', w: 100, h: 80, fill: [0.2, 0.6, 0.2, 1] } })
+await page.waitForTimeout(300)
+check('a shape layer draws its fill', near((await px(150, 100)).slice(0, 3), [0.2, 0.6, 0.2], 2 / 255))
+await op('props', { nodeId: sh.nodeId, patch: { styles: [{ type: 'stroke', enabled: true, color: [1, 0, 0, 1], opacity: 1, size: 6, position: 'outside' }] } })
+await page.waitForTimeout(300)
+const st = await px(97, 100)
+check('stroke style (outside) rings the shape', st[0] > 0.9 && st[1] < 0.1, fmt(st))
+await op('props', { nodeId: sh.nodeId, patch: { styles: [{ type: 'shadow', enabled: true, color: [0, 0, 0, 1], opacity: 0.8, angle: 90, distance: 20, size: 4, spread: 0, blend: 'multiply' }] } })
+await page.waitForTimeout(300)
+const shd = await px(150, 150) // below the shape, inside the 20 px shadow offset
+check('drop shadow falls below the shape', shd[0] < 0.5 && near((await px(150, 30)).slice(0, 3), [1, 1, 1], 2 / 255), fmt(shd))
+
 // ── frequency separation recombines exactly ────────────────────────────────
 await newDoc(128, 128)
 await op('addFill', { fill: { type: 'radial', line: [64, 64, 120, 64], stops: [{ t: 0, color: [0.9, 0.6, 0.3, 1] }, { t: 1, color: [0.1, 0.2, 0.4, 1] }] } })
