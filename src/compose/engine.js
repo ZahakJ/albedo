@@ -624,6 +624,35 @@ export function createComposeEngine(host) {
       }
       commit('Canvas Size', { ...doc, width, height, nodes: doc.nodes.map(shift), rev: doc.rev + 1 })
     },
+    // Image › Mode: every texture converted to the new depth's storage (32-bit
+    // documents hold linear light, so the move in or out of it re-encodes)
+    setDepth({ depth }) {
+      if (![8, 16, 32].includes(depth) || depth === doc.depth) return
+      if (depth === 32 && !C.canFilter32) throw new Error('This GPU cannot filter 32-bit float textures')
+      const from = doc.depth
+      const map = new Map()
+      const convert = (id, mask) => {
+        if (!id || map.has(id)) return map.get(id) ?? id
+        const src = texOf(id)
+        if (!src) return id
+        const fmtTo = mask ? maskFormat(depth) : storageFormat(depth)
+        const nid = newRes(src.width, src.height, fmtTo, src.mipLevelCount > 1)
+        const entry = !mask && depth === 32 ? 'fs_lin_premul' : !mask && from === 32 ? 'fs_enc_premul' : 'fs_copy'
+        C.run('util', entry, texOf(nid), [null, C.level0(src)])
+        if (src.mipLevelCount > 1) C.genMips(texOf(nid))
+        map.set(id, nid)
+        return nid
+      }
+      const conv = (n) => {
+        const out = { ...n, rev: (n.rev ?? 0) + 1 }
+        if (n.pix) out.pix = convert(n.pix, false)
+        if (n.mask?.tex) out.mask = { ...n.mask, tex: convert(n.mask.tex, true) }
+        if (n.kind === 'group') out.children = n.children.map(conv)
+        return out
+      }
+      const sel = doc.selection?.tex ? { ...doc.selection, tex: convert(doc.selection.tex, true) } : doc.selection
+      commit(`${depth} Bits/Channel`, { ...doc, depth, nodes: doc.nodes.map(conv), selection: sel, rev: doc.rev + 1 })
+    },
     rename({ nodeId, name }) { commit('Rename Layer', patchNode(doc, nodeId, { name })) },
     docProps({ patch, label = 'Document' }) { commit(label, { ...doc, ...patch, rev: doc.rev + 1 }) },
   }
@@ -814,6 +843,18 @@ export function createComposeEngine(host) {
 
   // ── export (flattened) ───────────────────────────────────────────────────
   // full-resolution composite → straight-alpha float RGBA (row 0 = top)
+  async function compositeScaled(k, W, H) {
+    const t = C.createTex(W, H, accFmt(), false)
+    C.composite(doc, resMap(doc), compositeHost, t, { W, H, view: [k, k, 0, 0] })
+    const px = await readFloats(device, t)
+    t.destroy()
+    for (let i = 0; i < px.length; i += 4) {
+      const a = px[i + 3]
+      if (a > 1e-6 && a < 1) { px[i] /= a; px[i + 1] /= a; px[i + 2] /= a }
+    }
+    if (doc.depth === 32) for (let i = 0; i < px.length; i += 4) for (let c = 0; c < 3; c++) px[i + c] = linToSrgb(px[i + c])
+    return px
+  }
   async function compositeFloats(d = doc, rect = null, { linear = false } = {}) {
     const W = d.width, H = d.height
     const t = C.createTex(W, H, accFmt(), false)
@@ -828,9 +869,12 @@ export function createComposeEngine(host) {
     return px
   }
 
-  async function exportFlat({ format = 'jpeg', quality = 0.92 }) {
-    const px = await compositeFloats()
-    const W = doc.width, H = doc.height
+  async function exportFlat({ format = 'jpeg', quality = 0.92, longEdge = 0 }) {
+    // longEdge: render the composite smaller directly (mipmapped layers do the
+    // downsampling, Develop adjustments run at that scale)
+    const k = longEdge > 0 ? Math.min(1, longEdge / Math.max(doc.width, doc.height)) : 1
+    const W = Math.max(1, Math.round(doc.width * k)), H = Math.max(1, Math.round(doc.height * k))
+    const px = k < 1 ? await compositeScaled(k, W, H) : await compositeFloats()
     if (format === 'tiff') {
       const { encodeTiff16Deflate } = await import('../io/tiff.js')
       const alpha = hasAlpha(px)

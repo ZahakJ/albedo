@@ -77,3 +77,11 @@ fn fs_lin_premul(in: VOut) -> @location(0) vec4f {
   let l = select(pow((s + 0.055) / 1.055, vec3f(2.4)), s / 12.92, s <= vec3f(0.04045));
   return vec4f(l * c.a, c.a);
 }
+
+// linear premultiplied → display-encoded premultiplied (leaving 32-bit)
+@fragment
+fn fs_enc_premul(in: VOut) -> @location(0) vec4f {
+  let c = textureLoad(srcTex, vec2i(in.p.xy), 0);
+  if (c.a <= 1e-6) { return vec4f(0.0); }
+  return vec4f(lin_to_srgb(c.rgb / c.a) * c.a, c.a);
+}

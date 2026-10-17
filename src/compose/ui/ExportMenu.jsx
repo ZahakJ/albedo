@@ -7,6 +7,8 @@ import { toast } from '../../state/toastStore.js'
 // Export: flattened JPEG, PNG or 16-bit TIFF; layered PSD, TIFF or .albedo.
 const FORMATS = [
   ['jpeg', 'JPEG', 'jpg', 'flattened, on white'],
+  ['jpeg-2048', 'JPEG, 2048 px', 'jpg', 'long edge, for the web'],
+  ['jpeg-4096', 'JPEG, 4096 px', 'jpg', 'long edge'],
   ['png', 'PNG', 'png', 'flattened, with transparency'],
   ['tiff', 'TIFF, 16-bit', 'tif', 'flattened'],
   ['psd', 'Photoshop (PSD)', 'psd', 'layers, masks, groups, modes'],
@@ -22,6 +24,7 @@ export async function exportAs(format) {
   try {
     let blob
     if (format === 'albedo') blob = await albedoFile(doc)
+    else if (format.startsWith('jpeg-')) blob = await exportDoc('jpeg', { quality: 0.9, longEdge: +format.slice(5) })
     else blob = await exportDoc(format === 'psd+' ? 'psd' : format, { quality: 0.92, withAlbedo: format === 'psd+' })
     const name = `${doc.name.replace(/[\\/:*?"<>|]+/g, '_')}.${f[2]}`
     const a = document.createElement('a')

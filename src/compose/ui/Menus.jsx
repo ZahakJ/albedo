@@ -4,6 +4,7 @@ import { ADJUSTMENTS } from '../model.js'
 import { contentAwareFill } from './contentAware.js'
 import { aiSelect } from './tools/select.jsx'
 import { exportAs } from './ExportMenu.jsx'
+import { toast } from '../../state/toastStore.js'
 
 // Compose's menus, Photoshop's order and names. Every item is also reachable
 // by its key or from a panel; the menus are for finding things.
@@ -20,12 +21,14 @@ const menus = {
     { label: 'Free Transform', key: '⌘T', run: () => setTool('transform') },
   ],
   Image: () => [
+    { label: 'Mode', items: [8, 16, 32].map((d) => ({ label: `${d === getCompose().doc?.depth ? '✓ ' : ''}${d} Bits/Channel${d === 16 ? ' (half float)' : d === 32 ? ' (float, linear)' : ''}`, run: () => op('setDepth', { depth: d }).catch((e) => toast(e.message)) })) },
     { label: 'Crop', key: 'C', run: () => setTool('crop') },
     { label: 'Merge Visible', key: '⇧⌘E', run: () => op('mergeVisible') },
     { label: 'Flatten Image', run: () => op('flatten') },
     { sep: true },
     { label: 'Export', items: [
       { label: 'JPEG', run: () => exportAs('jpeg') },
+      { label: 'JPEG, 2048 px long edge', run: () => exportAs('jpeg-2048') },
       { label: 'PNG', run: () => exportAs('png') },
       { label: 'TIFF, 16-bit', run: () => exportAs('tiff') },
       { label: 'Photoshop (PSD)', run: () => exportAs('psd') },

@@ -266,6 +266,24 @@ await op('frequencySeparation', { radius: 6 })
 const after = await px(40, 70)
 check('frequency separation recombines to the source (16-bit)', near(before.slice(0, 3), after.slice(0, 3), 1 / 255), `${fmt(before)} → ${fmt(after)}`)
 
+// ── Image › Mode, and export at a size ─────────────────────────────────────
+await newDoc(300, 200, { background: 'white' })
+await op('addFill', { fill: { type: 'linear', line: [0, 0, 300, 0], stops: [{ t: 0, color: [0.1, 0.4, 0.8, 1] }, { t: 1, color: [0.9, 0.7, 0.2, 1] }] } })
+await op('stampVisible')
+await op('addAdjust', { type: 'huesat', params: { params: { hue: 20, saturation: 10, lightness: 0 } } })
+const m16 = await px(150, 100)
+await op('setDepth', { depth: 32 })
+const m32 = await px(150, 100)
+await op('setDepth', { depth: 8 })
+const m8 = await px(150, 100)
+check('Image › Mode keeps the look: 16 → 32 → 8 bits', near(m16.slice(0, 3), m32.slice(0, 3), 3 / 255) && near(m16.slice(0, 3), m8.slice(0, 3), 3 / 255) && (await doc()).depth === 8, `${fmt(m16)} / ${fmt(m32)} / ${fmt(m8)}`)
+const small = await C(async () => {
+  const blob = await window.__albedo.compose.exportDoc('jpeg', { longEdge: 120, quality: 0.9 })
+  const bm = await createImageBitmap(blob)
+  return [bm.width, bm.height]
+})
+check('JPEG export at a long edge', small[0] === 120 && small[1] === 80, small.join('×'))
+
 // ── PSD round trip ─────────────────────────────────────────────────────────
 await newDoc(120, 80, { background: 'white' })
 await op('addLayer', { kind: 'pixel' })
