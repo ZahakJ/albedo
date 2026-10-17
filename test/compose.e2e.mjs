@@ -16,7 +16,9 @@ if (!process.env.DISPLAY && !process.env.WAYLAND_DISPLAY) {
   console.log('SKIP compose: no display — run under xvfb-run -a for a GPU-backed browser')
   process.exit(0)
 }
-await ensureServer(PORT)
+// TEST_URL: a static build (keeps a dev server's reloads out of a long run)
+const BASE = process.env.TEST_URL ?? `http://localhost:${PORT}/`
+if (!process.env.TEST_URL) await ensureServer(PORT)
 
 let failed = 0
 const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra ? ` — ${extra}` : ''}`); if (!ok) failed++ }
@@ -28,7 +30,7 @@ const page = await browser.newPage({ viewport: { width: 1500, height: 950 } })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
-await page.goto(`http://localhost:${PORT}/`)
+await page.goto(BASE)
 await page.waitForFunction(() => window.__albedo?.compose?.state().ready || window.__albedo?.compose?.state().error, null, { timeout: 30000 })
 if (await page.evaluate(() => window.__albedo.compose.state().error)) {
   console.log(`SKIP compose: ${await page.evaluate(() => window.__albedo.compose.state().error)}`)
@@ -115,6 +117,18 @@ check('Develop adjustment (exposure +1 brightens)', dev[0] > 0.25 && dev[2] > 0.
 d = await doc()
 await op('addMask', { nodeId: d.activeId, reveal: false })
 check('a hide-all mask removes the adjustment', near((await px(10, 10)).slice(0, 3), [0.2, 0.4, 0.6]))
+
+// a mask made from a selection limits the adjustment to it
+await newDoc(100, 100, { background: 'white' })
+await op('addAdjust', { type: 'invert' })
+d = await doc()
+await req({ type: 'coSelect', op: 'shape', shapes: [{ kind: 'rect', x0: 0, y0: 0, x1: 50, y1: 100 }], mode: 'new' })
+await op('addMask', { nodeId: d.activeId, reveal: true, fromSelection: true })
+check('a mask from the selection limits the adjustment', near((await px(25, 50)).slice(0, 3), [0, 0, 0]) && near((await px(75, 50)).slice(0, 3), [1, 1, 1]))
+await op('deleteMask', { nodeId: d.activeId })
+await op('addMask', { nodeId: d.activeId, reveal: false, fromSelection: true })
+check('a hide-selection mask is its inverse', near((await px(25, 50)).slice(0, 3), [1, 1, 1]) && near((await px(75, 50)).slice(0, 3), [0, 0, 0]))
+await op('deselect')
 
 // ── clipping and groups ────────────────────────────────────────────────────
 await newDoc(100, 100, { background: 'white' })

@@ -240,4 +240,7 @@ export const aiSelectTool = {
   },
 }
 
+// e2e and screenshots reach the AI selection through here
+if (typeof window !== 'undefined') window.__composeUi = { ...(window.__composeUi ?? {}), aiSelect }
+
 export const selectionTools = [marqueeTool, ellipseTool, lassoTool, polyTool, wandTool, aiSelectTool]

@@ -15,7 +15,9 @@ import { ensureServer } from './server.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const RAW = process.argv[2] ?? `${root}test/fixtures/bench-a7iii.arw`
 const PORT = 5194
-await ensureServer(PORT)
+// TEST_URL: a static build (keeps a dev server's reloads out of a long run)
+const BASE = process.env.TEST_URL ?? `http://localhost:${PORT}/`
+if (!process.env.TEST_URL) await ensureServer(PORT)
 const W = +(process.env.VW ?? 2560), H = +(process.env.VH ?? 1440)
 
 const browser = await chromium.launch({ headless: false, args: ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--ignore-gpu-blocklist'] })
@@ -23,7 +25,7 @@ const page = await browser.newPage({ viewport: { width: W, height: H } })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
-await page.goto(`http://localhost:${PORT}/`)
+await page.goto(BASE)
 await page.waitForFunction(() => window.__albedo?.compose?.state().ready, null, { timeout: 30000 })
 
 // the RAW into the catalog, into Develop, then Edit in Compose

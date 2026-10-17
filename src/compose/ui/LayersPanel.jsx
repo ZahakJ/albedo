@@ -109,6 +109,9 @@ export default function LayersPanel() {
   const [drop, setDrop] = useState(null) // { row, where: 'before'|'after'|'into' }
   const drag = useRef(null)
   const listRef = useRef(null)
+  useEffect(() => {
+    listRef.current?.querySelector('.co-row.is-active')?.scrollIntoView({ block: 'nearest' })
+  }, [doc?.activeId])
   if (!doc) return null
   const rows = rowsOf(doc.nodes)
   const activeHit = doc.activeId ? findNode(doc.nodes, doc.activeId) : null
@@ -263,7 +266,7 @@ export default function LayersPanel() {
                   <Icon name={n.collapsed ? 'chevRight' : 'chevDown'} />
                 </button>
               ) : null}
-              {KIND_ICON[n.kind] && n.kind !== 'smart' && n.kind !== 'text' && n.kind !== 'shape'
+              {KIND_ICON[n.kind] && n.kind !== 'smart' && n.kind !== 'shape'
                 ? <span className="co-kind" aria-hidden="true"><Icon name={KIND_ICON[n.kind]} /></span>
                 : <Thumb id={n.id} which="content" gen={thumbGen} kind={n.kind} />}
               {n.mask && (

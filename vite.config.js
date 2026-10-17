@@ -7,11 +7,13 @@ import { join, relative } from 'node:path'
 // Offline: after a build, list every emitted file into dist/sw.js so the
 // service worker can precache the app shell. Models are left out — they are
 // large and optional — and cached at runtime on first use instead.
-const serviceWorker = () => ({
+const serviceWorker = () => {
+  let dist = 'dist'
+  return {
   name: 'albedo-sw',
   apply: 'build',
+  configResolved(c) { dist = c.build.outDir },
   closeBundle() {
-    const dist = 'dist'
     const files = []
     const walk = (d) => {
       for (const n of readdirSync(d)) {
@@ -29,7 +31,8 @@ const serviceWorker = () => ({
       .replace('__PRECACHE__', JSON.stringify(['./', ...shell.filter((f) => f !== 'index.html')]))
     writeFileSync(join(dist, 'sw.js'), src)
   },
-})
+  }
+}
 
 export default defineConfig({
   plugins: [react(), serviceWorker()],

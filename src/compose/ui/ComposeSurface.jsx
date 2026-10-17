@@ -271,6 +271,7 @@ export default function ComposeSurface({ canvasRef, active }) {
           {doc ? (
             <>
               <div className="co-props-wrap"><PropertiesPanel /></div>
+              <Splitter />
               <div className="co-layers-wrap"><LayersPanel /></div>
               <HistoryPanel />
             </>
@@ -291,5 +292,43 @@ function SelectionAnts({ sel, view }) {
         <path className="ants ants-over" d={sel.outline} />
       </g>
     </svg>
+  )
+}
+
+// the divider between Properties and Layers: drag to share the height
+const SPLIT_KEY = 'albedo.compose.propsH'
+function Splitter() {
+  const ref = useRef(null)
+  const drag = useRef(null)
+  useEffect(() => {
+    const v = (() => { try { return localStorage.getItem(SPLIT_KEY) } catch { return null } })()
+    if (v) ref.current?.parentElement?.style.setProperty('--props-h', `${v}%`)
+  }, [])
+  return (
+    <div
+      ref={ref}
+      className="co-split"
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label="Resize Properties and Layers"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        e.currentTarget.classList.add('is-dragging')
+        drag.current = e.currentTarget.parentElement.getBoundingClientRect()
+      }}
+      onPointerMove={(e) => {
+        const r = drag.current
+        if (!r) return
+        const pct = Math.min(75, Math.max(10, ((e.clientY - r.top) / r.height) * 100))
+        e.currentTarget.parentElement.style.setProperty('--props-h', `${pct}%`)
+        drag.current.pct = pct
+      }}
+      onPointerUp={(e) => {
+        e.currentTarget.classList.remove('is-dragging')
+        const pct = drag.current?.pct
+        drag.current = null
+        if (pct) try { localStorage.setItem(SPLIT_KEY, pct.toFixed(1)) } catch { /* private mode */ }
+      }}
+    />
   )
 }

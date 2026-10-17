@@ -198,8 +198,19 @@
   border-left: 1px solid var(--g-line);
   min-height: 0;
 }
-.co-props-wrap { flex: 0 1 auto; max-height: 52%; overflow-y: auto; border-bottom: 1px solid var(--g-line); }
-.co-layers-wrap { flex: 1 1 auto; min-height: calc(180px * var(--ui-scale)); display: flex; flex-direction: column; }
+.co-props-wrap { flex: none; height: var(--props-h, 38%); min-height: calc(80px * var(--ui-scale)); overflow-y: auto; }
+.co-split {
+  flex: none;
+  height: 7px;
+  margin: -3px 0;
+  position: relative;
+  z-index: 1;
+  cursor: row-resize;
+  touch-action: none;
+}
+.co-split::after { content: ''; position: absolute; left: 0; right: 0; top: 3px; height: 1px; background: var(--g-line); }
+.co-split:hover::after, .co-split.is-dragging::after { background: var(--g-line-hi); height: 2px; top: 2px; }
+.co-layers-wrap { flex: 1 1 0; min-height: calc(160px * var(--ui-scale)); display: flex; flex-direction: column; }
 .co-panel .panel-section { padding-left: var(--sp-3); padding-right: var(--sp-3); }
 .co-props-empty { padding: var(--sp-4) var(--sp-3); }
 .co-hint { font-size: var(--fs-dense); color: var(--ink-lo); line-height: 1.45; margin: var(--sp-1) 0; }
@@ -352,7 +363,7 @@
 .co-act-del:hover:not(:disabled) { color: var(--danger); }
 
 /* history */
-.co-history { display: flex; flex-direction: column; max-height: calc(150px * var(--ui-scale)); overflow-y: auto; }
+.co-history { display: flex; flex-direction: column; max-height: calc(104px * var(--ui-scale)); overflow-y: auto; }
 .co-hist {
   display: flex; align-items: center; gap: var(--sp-2);
   height: calc(20px * var(--ui-scale));
@@ -434,3 +445,13 @@
 .co-menus { display: flex; gap: 2px; padding-right: var(--sp-2); border-right: 1px solid var(--g-line); flex: none; }
 .co-menu { height: calc(24px * var(--ui-scale)); padding: 0 var(--sp-2); font-size: var(--fs-dense); color: var(--ink-mid); border-radius: 3px; }
 .co-menu:hover { color: var(--ink-hi); background: var(--g-well); }
+.co-options .btn-quick { width: auto; flex: none; padding: 0 var(--sp-3); height: calc(24px * var(--ui-scale)); white-space: nowrap; }
+.co-options .co-hint { white-space: nowrap; margin: 0; }
+.co-options .seg { flex: none; }
+.co-props-head {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) 0;
+  font-size: var(--fs-dense); color: var(--ink-hi);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.co-props-head .co-sub { color: var(--ink-lo); }

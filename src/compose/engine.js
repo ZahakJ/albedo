@@ -42,7 +42,6 @@ export function createComposeEngine(host) {
   let interacting = null // nodeId under a live gesture (below-cache anchor)
   let frameStats = { ms: 0, cpuMs: 0, frames: 0 }
   const plugins = [] // paint, select, text, … — each may hook into frames and ops
-  let selection = null // set by select.js: { tex, bounds, outline }
   const sources = new Map() // photoId → requested
   let saveTimer = null
   let dirty = false
@@ -409,7 +408,6 @@ export function createComposeEngine(host) {
     history = []
     at = -1
     for (const p of plugins) p.reset?.()
-    selection = null
     thumbKeys.clear()
     sources.clear()
     doc = null
@@ -559,7 +557,7 @@ export function createComposeEngine(host) {
       const v = reveal ? 1 : 0
       enc.beginRenderPass({ colorAttachments: [{ view: C.level0(t), loadOp: 'clear', storeOp: 'store', clearValue: [v, v, v, v] }] }).end()
       device.queue.submit([enc.finish()])
-      if (fromSelection && selection) plugins.find((p) => p.selectionToMask)?.selectionToMask(t, !reveal)
+      if (fromSelection && doc.selection?.tex) plugins.find((p) => p.selectionToMask)?.selectionToMask(t, !reveal)
       C.genMips(t)
       commit(fromSelection ? 'Mask from Selection' : 'Add Mask', patchNode(doc, id, { mask: { tex: mid, enabled: true, density: 1, invert: false } }))
     },
@@ -788,7 +786,15 @@ export function createComposeEngine(host) {
     dirty = false
   }
 
+  let migrated = false
   async function list() {
+    if (!migrated) {
+      migrated = true
+      const { migrateCanvasDocs } = await import('./legacy.js')
+      // runs from the start screen, where no document is open
+      const n = await migrateCanvasDocs(E, (d) => { closeDoc(); doc = d }, async () => { dirty = true; await save() })
+      if (n) { closeDoc(); changed() }
+    }
     const out = []
     let root
     try { root = await getDir('composedocs', true) } catch { return out }
@@ -1060,8 +1066,6 @@ export function createComposeEngine(host) {
     get doc() { return doc },
     set doc(d) { doc = d },
     get view() { return view },
-    get selection() { return selection },
-    set selection(s) { selection = s },
     get interacting() { return interacting },
     set interacting(v) { interacting = v },
     res, derived, newRes, texOf, fmt, mfmt, accFmt, commit, changed, requestFrame, patchNode, updateNode,

@@ -228,7 +228,7 @@ export function textPlugin() {
   }
 
   return {
-    init(e) { E = e },
+    init(e) { E = e; E.textBounds = (x, y, props) => boundsFor('text', x, y, props) },
     ops,
     vectorTex,
     reset() { for (const c of cache.values()) c.tex.destroy(); cache.clear() },

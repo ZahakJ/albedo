@@ -274,4 +274,4 @@ export const setCloneSource = (cloneSource) => set({ cloneSource })
 export const setEditingSmart = (editingSmart) => set({ editingSmart })
 
 // e2e hook
-export const composeE2e = { state: getCompose, request, op, getPixel, stats, exportDoc, fit, setView, toDoc }
+export const composeE2e = { state: getCompose, request, op, getPixel, stats, exportDoc, fit, setView, toDoc, thumbs }
