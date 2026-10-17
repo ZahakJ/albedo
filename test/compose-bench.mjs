@@ -110,7 +110,11 @@ const buildMs = Date.now() - tb
 d = await doc()
 const count = (l) => l.reduce((n, x) => n + 1 + (x.children ? count(x.children) : 0), 0)
 const layers = count(d.nodes)
-console.log(`${layers} layers built in ${(buildMs / 1000).toFixed(1)} s`)
+const kinds = {}
+const tally = (l) => { for (const x of l) { const k = x.kind === 'adjust' ? `adjust:${x.adjust?.type}` : x.kind; kinds[k] = (kinds[k] ?? 0) + 1; if (x.children) tally(x.children) } }
+tally(d.nodes)
+console.log(`${layers} layers built in ${(buildMs / 1000).toFixed(1)} s:`, JSON.stringify(kinds))
+if (layers < 50) { console.error('FAIL the document should have 50 layers'); process.exitCode = 1 }
 
 const bench = (args) => req({ type: 'coBench', frames: 60, ...args })
 const fit = () => C(() => window.__albedo.compose.fit())
@@ -153,7 +157,7 @@ const rss = (() => {
   } catch { return null }
 })()
 const vp = await C(() => { const r = document.querySelector('.co-stage').getBoundingClientRect(); return [Math.round(r.width * Math.min(devicePixelRatio, 2)), Math.round(r.height * Math.min(devicePixelRatio, 2))] })
-const ms = (r) => `${r.median.toFixed(2)} ms median, ${r.p95.toFixed(2)} p95`
+const ms = (r) => `${r.median.toFixed(2)} ms median, ${r.p95.toFixed(2)} p95, ${r.composites} composites`
 console.log(`stage ${vp[0]}×${vp[1]} px`)
 for (const [k, v] of Object.entries(res)) console.log(`${k.padEnd(14)} ${ms(v)}`)
 console.log(`VRAM held by the document and history: ${(stats.vram / 2 ** 30).toFixed(2)} GB; browser RSS ${rss} MB`)

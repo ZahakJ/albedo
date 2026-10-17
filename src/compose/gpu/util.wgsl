@@ -9,7 +9,8 @@ struct PresentU {
   doc: vec4f,      // document rectangle in target px: x0, y0, x1, y1
   surround: vec4f, // colour outside the document
   k: vec4f,        // checker size (px), linear (32-bit doc), dither, show checker
-  k2: vec4f,       // exposure (32-bit view), src uv scale x, y, pad
+  k2: vec4f,       // exposure (32-bit view), pad, pad, pad
+  map: vec4f,      // target px → source uv: uv = px · map.xy + map.zw
 }
 
 struct VOut {
@@ -54,7 +55,11 @@ fn fs_present(in: VOut) -> @location(0) vec4f {
   let px = in.p.xy;
   let inDoc = px.x >= P.doc.x && px.y >= P.doc.y && px.x < P.doc.z && px.y < P.doc.w;
   if (!inDoc) { return vec4f(P.surround.rgb, 1.0); }
-  let c = textureLoad(srcTex, vec2i(px), 0);
+  // the composite is a cache of part of the document, maybe at another zoom
+  // (scaled while a zoom gesture lasts): sample it where this pixel falls
+  let uv = px * P.map.xy + P.map.zw;
+  let covered = all(uv >= vec2f(0.0)) && all(uv <= vec2f(1.0));
+  let c = select(vec4f(0.0), textureSampleLevel(srcTex, samp, clamp(uv, vec2f(0.0), vec2f(1.0)), 0.0), covered);
   var rgb = select(vec3f(0.0), c.rgb / c.a, c.a > 1e-6);
   if (P.k.y > 0.5) { rgb = lin_to_srgb(rgb * exp2(P.k2.x)); }
   // checkerboard under transparency, anchored to the document's corner

@@ -256,25 +256,37 @@ export function createComposeEngine(host) {
   const targetSize = () => [Math.max(1, Math.round(view.cssW * view.dpr)), Math.max(1, Math.round(view.cssH * view.dpr))]
   const viewXf = () => [view.zoom * view.dpr, view.zoom * view.dpr, view.offX * view.dpr, view.offY * view.dpr]
 
+  // ── frames and the view cache ────────────────────────────────────────────
+  // The composite is cached as a region of the document at the view's scale.
+  // Panning inside it, or zooming (shown scaled until the gesture settles),
+  // only presents it again; the layers are composited when content changes,
+  // the zoom settles, or the view leaves the cached region. When nothing has
+  // changed for a moment the region grows a margin around the view, so the
+  // next pan has pixels to show.
   let pending = false
+  let contentRev = 1
+  let lastContent = 0
+  let lastZoom = 0
+  let composites = 0
+  let vc = null // { tex, rev, scale, ox, oy, cx0, cy0, cw, ch, margin }
+  let settleTimer = null
   const raf = self.requestAnimationFrame?.bind(self) ?? ((f) => setTimeout(f, 8))
-  function requestFrame() {
+  function requestFrame(content = true) {
+    if (content) { contentRev++; lastContent = performance.now() }
     if (pending) return
     pending = true
     raf(() => { pending = false; try { frame() } catch (err) { console.error('[compose frame]', err) } })
   }
+  const later = (ms) => { clearTimeout(settleTimer); settleTimer = setTimeout(() => requestFrame(false), ms) }
 
   // signature of the first k top-level nodes (below-cache key)
   const ids = new WeakMap()
   let idSeq = 0
   const sigOf = (n) => { let v = ids.get(n); if (!v) { v = ++idSeq; ids.set(n, v) } return v }
-  const prefixSig = (k) => {
-    const [W, H] = targetSize()
-    return `${W}x${H}/${viewXf().join(',')}/${doc.depth}/` + doc.nodes.slice(0, k).map(sigOf).join(',') +
-      '/' + plugins.map((p) => p.sigBelow?.(k) ?? '').join('')
-  }
+  const prefixSig = (vkey) => (k) => `${vkey}/${doc.depth}/` + doc.nodes.slice(0, k).map(sigOf).join(',') +
+    '/' + plugins.map((p) => p.sigBelow?.(k) ?? '').join('')
 
-  function frame() {
+  function frame(force = false) {
     if (!gctx) return
     const t0 = performance.now()
     const [W, H] = targetSize()
@@ -288,24 +300,66 @@ export function createComposeEngine(host) {
       C.present(gctx, acc, { docRect: [0, 0, 0, 0], surround: view.surround })
       return
     }
-    if (!acc || acc.width !== W || acc.height !== H || acc.format !== accFmt()) {
-      acc?.destroy()
-      acc = C.createTex(W, H, accFmt(), false)
-      C.trimPool(W, H)
-    }
     for (const p of plugins) p.beforeFrame?.()
-    const k = interacting ? topIndexOf(doc.nodes, interacting) : -1
-    C.composite(doc, resMap(doc), compositeHost, acc, {
-      W, H, view: viewXf(), cacheAt: k, sigs: prefixSig,
-    })
     const [sx, sy, ox, oy] = viewXf()
-    C.present(gctx, acc, {
-      docRect: [ox, oy, ox + doc.width * sx, oy + doc.height * sy],
-      surround: view.surround,
-      checker: 8 * view.dpr,
-      linear: doc.depth === 32,
-      dither: doc.depth !== 8,
-    })
+    const dw = doc.width, dh = doc.height
+    // the cache lives on the screen's pixel grid: cache px (i, j) is target px
+    // (cx0 + i, cy0 + j) at the offset (vc.ox, vc.oy) it was made at
+    const sx0 = Math.max(0, ox), sy0 = Math.max(0, oy)
+    const sx1 = Math.min(W, ox + dw * sx), sy1 = Math.min(H, oy + dh * sy)
+    const now = performance.now()
+    const fmtOK = vc && vc.tex.format === accFmt()
+    const fresh = fmtOK && vc.rev === contentRev
+    const sameScale = fresh && Math.abs(vc.scale - sx) <= 1e-6 * sx
+    // where the visible document lands in the cache, in cache px
+    const toCache = (X, Y) => vc ? [(X - ox) / sx * vc.scale + vc.ox - vc.cx0, (Y - oy) / sy * vc.scale + vc.oy - vc.cy0] : [0, 0]
+    const [c0x, c0y] = toCache(sx0, sy0), [c1x, c1y] = toCache(sx1, sy1)
+    const covers = fresh && c0x >= -0.01 && c0y >= -0.01 && c1x <= vc.cw + 0.01 && c1y <= vc.ch + 0.01
+    const frac = (v) => Math.abs(v - Math.round(v))
+    const aligned = sameScale && frac(ox - vc.ox) < 1e-3 && frac(oy - vc.oy) < 1e-3
+    const idle = now - lastContent > 250 && !interacting
+    let compose = force || !fresh || (!sameScale && now - lastZoom >= 180) || (sameScale && !covers)
+    // once quiet: grow a margin for the next pan, or snap a fractional pan sharp
+    if (!compose && sameScale && covers && idle && (vc.margin === 0 || !aligned)) compose = true
+    if (!compose && (!sameScale || !aligned)) later(200)
+    if (compose && sx1 > sx0 && sy1 > sy0) {
+      let m = idle ? 0.25 : 0
+      let cx0, cy0, cw, ch
+      for (;;) {
+        const mw = W * m, mh = H * m
+        cx0 = Math.floor(Math.max(ox, -mw)); cy0 = Math.floor(Math.max(oy, -mh))
+        cw = Math.max(1, Math.ceil(Math.min(ox + dw * sx, W + mw)) - cx0)
+        ch = Math.max(1, Math.ceil(Math.min(oy + dh * sy, H + mh)) - cy0)
+        const maxSide = device.limits.maxTextureDimension2D
+        if ((cw * ch <= 2.5 * W * H && cw <= maxSide && ch <= maxSide) || m === 0) break
+        m = m > 0.05 ? m / 2 : 0
+      }
+      if (!fmtOK || vc.tex.width !== cw || vc.tex.height !== ch) {
+        vc?.tex.destroy()
+        vc = { tex: C.createTex(cw, ch, accFmt(), false) }
+        C.trimPool(cw, ch)
+      }
+      const xf = [sx, sy, ox - cx0, oy - cy0]
+      const k = interacting ? topIndexOf(doc.nodes, interacting) : -1
+      C.composite(doc, resMap(doc), compositeHost, vc.tex, {
+        W: cw, H: ch, view: xf, cacheAt: k, sigs: prefixSig(xf.join(',') + `/${cw}x${ch}`),
+      })
+      Object.assign(vc, { rev: contentRev, scale: sx, ox, oy, cx0, cy0, cw, ch, margin: m })
+      composites++
+      if (m === 0 && !interacting) later(300)
+    }
+    if (vc) {
+      // target px → cache px → uv
+      const k2 = vc.scale / sx
+      C.present(gctx, vc.tex, {
+        docRect: [ox, oy, ox + dw * sx, oy + dh * sy],
+        surround: view.surround,
+        checker: 8 * view.dpr,
+        linear: doc.depth === 32,
+        dither: doc.depth !== 8,
+        map: [k2 / vc.cw, k2 / vc.ch, (-ox * k2 + vc.ox - vc.cx0) / vc.cw, (-oy * k2 + vc.oy - vc.cy0) / vc.ch],
+      })
+    }
     frameStats = { ms: performance.now() - t0, frames: frameStats.frames + 1 }
     if (sources.size) requestSources()
   }
@@ -535,10 +589,11 @@ export function createComposeEngine(host) {
       const parentId = hits[0].parent?.id ?? null
       const same = hits.filter((h) => (h.parent?.id ?? null) === parentId).sort((a, b) => a.index - b.index)
       const g = newGroup(same.map((h) => h.node), { name: `Group ${allNodes(doc.nodes).filter((n) => n.kind === 'group').length + 1}` })
+      // take the others out before the group goes in: the group holds the
+      // same ids, and removing by id afterwards could find them inside it
       let d = doc
-      const top = same[same.length - 1].node.id
-      d = updateNode(d, top, () => [g])
       for (const h of same.slice(0, -1)) d = removeNode(d, h.node.id)
+      d = updateNode(d, same[same.length - 1].node.id, () => [g])
       commit('Group Layers', setActive(d, g.id))
     },
     ungroup({ nodeId }) {
@@ -744,10 +799,20 @@ export function createComposeEngine(host) {
   }
 
   // ── persistence (OPFS composedocs/<id>/) ─────────────────────────────────
+  // Autosave waits for a quiet moment: a large document's new layers mean
+  // hundreds of megabytes to read back and deflate, which must not land in
+  // the middle of a brush stroke or a slider drag
+  let lastActivity = 0
+  const touchActivity = () => { lastActivity = performance.now() }
   function scheduleSave() {
     if (!doc) return
     clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => save().catch((e) => console.warn('[compose save]', e)), SAVE_DELAY)
+    const quiet = () => {
+      const idle = performance.now() - lastActivity
+      if (idle < SAVE_DELAY) { saveTimer = setTimeout(quiet, SAVE_DELAY - idle + 50); return }
+      save().catch((e) => console.warn('[compose save]', e))
+    }
+    saveTimer = setTimeout(quiet, SAVE_DELAY)
   }
   let saving = null
   async function save() {
@@ -768,6 +833,9 @@ export function createComposeEngine(host) {
         await writeFileAtomic(`${dir}/${id}.bin`, await compress(raw))
         r.dirty = false
         r.saved = true
+        // let frames and messages through between textures
+        await new Promise((res) => setTimeout(res, 0))
+        if (performance.now() - lastActivity < 500) await new Promise((res) => setTimeout(res, 200))
       }
       for (const p of plugins) await p.save?.(dir, d)
       const meta = { schema: 1, doc: d, files, updatedAt: Date.now() }
@@ -904,6 +972,7 @@ export function createComposeEngine(host) {
 
   // ── messages ─────────────────────────────────────────────────────────────
   async function handle(data) {
+    if (data.type !== CO.STATS && data.type !== CO.BENCH && data.type !== CO.LIST) touchActivity()
     const reply = (payload = {}, transfer) => post({ re: data.id, ok: true, ...payload }, transfer)
     switch (data.type) {
       case CO.INIT: {
@@ -915,8 +984,9 @@ export function createComposeEngine(host) {
         return
       }
       case CO.VIEW: {
+        if (data.zoom !== view.zoom) lastZoom = performance.now()
         view = { cssW: data.w, cssH: data.h, dpr: data.dpr ?? 1, zoom: data.zoom, offX: data.offX, offY: data.offY, surround: data.surround ?? view.surround }
-        requestFrame()
+        requestFrame(false)
         return
       }
       case CO.NEW: {
@@ -1074,17 +1144,26 @@ export function createComposeEngine(host) {
         // frames timed to GPU completion; mutate between frames:
         // none | pan | zoom | preview ({ nodeId, patches: [a, b] }) |
         // stroke ({ begin, pts per frame }) — benchmarks only
+        // measure the editor, not the autosave or thumbnails behind it
+        clearTimeout(saveTimer)
+        clearTimeout(thumbTimer); thumbTimer = null
+        if (saving) await saving.catch(() => {})
+        if (dirty) await save().catch(() => {})
+        await device.queue.onSubmittedWorkDone()
         const times = []
+        const c0 = composites
         const n = data.frames ?? 60
         const v0 = { ...view }
         if (data.mutate === 'stroke') await handle({ type: CO.STROKE_BEGIN, ...data.begin })
         for (let i = 0; i < n; i++) {
           if (data.mutate === 'pan') view = { ...view, offX: v0.offX + ((i % 20) - 10) * 4, offY: v0.offY + ((i % 13) - 6) * 3 }
-          else if (data.mutate === 'zoom') view = { ...view, zoom: v0.zoom * (i % 2 ? 1.05 : 0.95) }
+          else if (data.mutate === 'zoom') { view = { ...view, zoom: v0.zoom * (i % 2 ? 1.05 : 0.95) }; lastZoom = performance.now() }
           const t0 = performance.now()
           if (data.mutate === 'preview') { interacting = data.nodeId; doc = patchNode(doc, data.nodeId, data.patches[i % 2]) }
           if (data.mutate === 'stroke') await handle({ type: CO.STROKE_PTS, pts: [[data.line[0] + data.line[2] * i, data.line[1] + data.line[3] * i, 1]] })
-          frame()
+          if (data.mutate === 'preview' || data.mutate === 'stroke') contentRev++
+          // 'none' redraws every layer; pan and zoom take the path the UI takes
+          frame(data.mutate === 'none' || data.mutate == null)
           await device.queue.onSubmittedWorkDone()
           times.push(performance.now() - t0)
         }
@@ -1093,7 +1172,7 @@ export function createComposeEngine(host) {
         view = v0
         requestFrame()
         const sorted = [...times].sort((a, b) => a - b)
-        reply({ median: sorted[Math.floor(n / 2)], p95: sorted[Math.floor(n * 0.95)], max: sorted[n - 1], mean: times.reduce((a, b) => a + b, 0) / n, vram: vramBytes() })
+        reply({ composites: composites - c0, median: sorted[Math.floor(n / 2)], p95: sorted[Math.floor(n * 0.95)], max: sorted[n - 1], mean: times.reduce((a, b) => a + b, 0) / n, vram: vramBytes() })
         return
       }
       case CO.STATS: reply({ vram: vramBytes(), frameMs: frameStats.ms, frames: frameStats.frames, layers: doc ? countLayers(doc.nodes) : 0, res: res.size, history: history.length }); return

@@ -537,21 +537,24 @@ export function createCompositor(gpu) {
   }
 
   // present the accumulator on a canvas context
-  function present(gctx, acc, { docRect, surround, checker = 8, linear = false, dither = true, exposure = 0 }) {
+  // map: target px → source uv (default: the source is target-aligned)
+  function present(gctx, acc, { docRect, surround, checker = 8, linear = false, dither = true, exposure = 0, map = null }) {
     const view = gctx.getCurrentTexture().createView()
     const fmt = gpu.format
     const p = pipe('util', 'fs_present', fmt)
-    const u = new Float32Array(16)
+    const u = new Float32Array(20)
     u.set(docRect)
     u.set(surround, 4)
     u.set([checker, linear ? 1 : 0, dither ? 1 : 0, 1], 8)
-    u.set([exposure, 1, 1, 0], 12)
+    u.set([exposure, 0, 0, 0], 12)
+    u.set(map ?? [1 / acc.width, 1 / acc.height, 0, 0], 16)
     const enc = device.createCommandEncoder()
     const pass = enc.beginRenderPass({ colorAttachments: [{ view, loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 1] }] })
     pass.setPipeline(p)
     pass.setBindGroup(0, device.createBindGroup({
       layout: p.getBindGroupLayout(0),
       entries: [
+        { binding: 0, resource: sampler },
         { binding: 1, resource: level0(acc) },
         { binding: 2, resource: uniform(u) },
       ],

@@ -144,6 +144,8 @@ await op('props', { nodeId: d.activeId, patch: { clip: true } })
 check('a clipped layer shows only over its base', near((await px(25, 50)).slice(0, 3), [1, 0, 0]) && near((await px(75, 50)).slice(0, 3), [1, 1, 1]))
 await op('group', { nodeIds: [base, d.activeId] })
 d = await doc()
+const grp = d.nodes.find((n) => n.id === d.activeId)
+check('grouping keeps every layer', grp?.kind === 'group' && grp.children.length === 2, `${grp?.children?.length} children`)
 await op('props', { nodeId: d.activeId, patch: { opacity: 0.5 } })
 check('a pass-through group fades its contents', near((await px(25, 50)).slice(0, 3), [1, 0.5, 0.5], 2 / 255))
 
@@ -356,6 +358,65 @@ const l1 = await px(130, 100)
 await op('resetLiquify', {})
 const l2 = await px(130, 100)
 check('liquify pushes pixels, and restores', l0[0] > 0.9 && l1[0] < 0.6 && l2[0] > 0.9, `${l0[0].toFixed(2)} → ${l1[0].toFixed(2)} → ${l2[0].toFixed(2)}`)
+
+// ── the view cache: a pan shows the same pixels a full redraw would ───────
+await newDoc(1200, 900, { background: 'white' })
+await op('addLayer', { kind: 'pixel' })
+for (let i = 0; i < 24; i++) {
+  const x = (i * 157) % 1100, y = (i * 263) % 800
+  await req({ type: 'coSelect', op: 'shape', shapes: [{ kind: i % 2 ? 'ellipse' : 'rect', x0: x, y0: y, x1: x + 90 + (i % 5) * 20, y1: y + 70 + (i % 3) * 30 }], mode: 'new' })
+  await op('fillSelection', { color: [(i * 0.37) % 1, (i * 0.61) % 1, (i * 0.13) % 1, 1] })
+}
+await op('deselect')
+const stageShot = async () => {
+  const r = await C(() => { const b = document.querySelector('.co-stage').getBoundingClientRect(); return { x: b.left, y: b.top, width: b.width, height: b.height } })
+  const png = (await page.screenshot({ clip: r })).toString('base64')
+  return C(async (b64) => {
+    const bm = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob())
+    const cv = new OffscreenCanvas(bm.width, bm.height)
+    const g = cv.getContext('2d'); g.drawImage(bm, 0, 0)
+    return { w: bm.width, h: bm.height, data: Array.from(g.getImageData(0, 0, bm.width, bm.height).data) }
+  }, png)
+}
+// worst difference between b and a moved by (dx, dy), away from the edges
+// and the info strip along the bottom (it stays put)
+const shiftDiff = (a, b, dx, dy) => {
+  let worst = 0
+  for (let y = 4; y < b.h - 48; y += 2) for (let x = 4; x < b.w - 4; x += 2) {
+    const ax = x - dx, ay = y - dy
+    if (ax < 4 || ay < 4 || ax >= a.w - 4 || ay >= a.h - 48) continue
+    const i = (y * b.w + x) * 4, j = (ay * a.w + ax) * 4
+    for (let c = 0; c < 3; c++) worst = Math.max(worst, Math.abs(b.data[i + c] - a.data[j + c]))
+  }
+  return worst
+}
+const setV = (patch) => C((p) => { const c = window.__albedo.compose; c.setView({ ...c.state().view, ...p, fitted: false }) }, patch)
+// a no-op edit makes the next frame composite every layer afresh
+const fresh = async () => {
+  const dd = await doc()
+  await op('props', { nodeId: dd.nodes[1].id, patch: { opacity: 0.999 } }); await page.waitForTimeout(150)
+  await op('props', { nodeId: dd.nodes[1].id, patch: { opacity: 1 } }); await page.waitForTimeout(150)
+  return stageShot()
+}
+await C(() => window.__albedo.compose.fit())
+await page.waitForTimeout(300)
+const v0 = await C(() => window.__albedo.compose.state().view)
+const at = (dx, dy) => ({ offX: v0.offX * 2 - 300 + dx, offY: v0.offY * 2 - 200 + dy })
+await setV({ zoom: v0.zoom * 2, ...at(0, 0) })
+await page.waitForTimeout(1200) // sharp, then the margin grows
+await setV(at(-120, -40))
+await page.waitForTimeout(80) // inside the margin: presented from the cache
+const inMargin = await stageShot()
+const dIn = shiftDiff(await fresh(), inMargin, 0, 0)
+await setV(at(-120.5, -40)) // half a pixel: shown softened, then composited sharp
+await page.waitForTimeout(800)
+const halfPx = await stageShot()
+const dHalf = shiftDiff(await fresh(), halfPx, 0, 0)
+await setV({ zoom: v0.zoom * 2.6, ...at(-200, -100) }) // a zoom: scaled, then sharp
+await page.waitForTimeout(800)
+const zoomed = await stageShot()
+const dZoom = shiftDiff(await fresh(), zoomed, 0, 0)
+check('the view cache shows what a full redraw shows (pan, half-pixel pan, zoom)', dIn <= 2 && dHalf <= 2 && dZoom <= 2, `max difference ${dIn}, ${dHalf}, ${dZoom} levels`)
 
 // ── the UI itself: mouse and keys, as a person uses it ─────────────────────
 await newDoc(800, 600, { background: 'white' })
