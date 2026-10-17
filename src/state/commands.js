@@ -57,6 +57,7 @@ export const CATEGORIES = [
   ['develop', 'Develop'],
   ['workflow', 'Workflow'],
   ['filter', 'Filter'],
+  ['compose', 'Compose'],
 ]
 
 const LABELS = [['red', '6'], ['yellow', '7'], ['green', '8'], ['blue', '9']]
@@ -95,6 +96,17 @@ export const registry = [
     category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coOp('flatten') },
   { id: 'compose-stamp', title: 'Stamp Visible', keywords: 'compose merge copy layer', noSheet: true,
     category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coOp('stampVisible') },
+  // ── compose (sheet only: the keys belong to the Compose surface; the
+  // manual has them all) ──
+  { id: 'co-move', title: 'Move · Marquee · Lasso', shortcut: 'V M L', category: 'compose', noPalette: true },
+  { id: 'co-wand', title: 'Wand · AI Select', shortcut: 'W ⇧W', category: 'compose', noPalette: true },
+  { id: 'co-paint', title: 'Brush · Eraser · Smudge', shortcut: 'B E R', category: 'compose', noPalette: true },
+  { id: 'co-retouch', title: 'Clone · Heal · Dodge', shortcut: 'S J O', category: 'compose', noPalette: true },
+  { id: 'co-type', title: 'Gradient · Type · Shape', shortcut: 'G T U', category: 'compose', noPalette: true },
+  { id: 'co-more', title: 'Liquify · Crop · Pick Colour', shortcut: 'Q C I', category: 'compose', noPalette: true },
+  { id: 'co-size', title: 'Brush Size', shortcut: '[ ]', category: 'compose', noPalette: true },
+  { id: 'co-xf', title: 'Free Transform', shortcut: '⌘T', category: 'compose', noPalette: true },
+  { id: 'co-mask', title: 'Paint on Mask', shortcut: '\\', category: 'compose', noPalette: true },
   { id: 'nav-photos', title: 'Previous / Next Photo', shortcut: '← →', category: 'navigate', noPalette: true },
   { id: 'thumb-up', title: 'Bigger Thumbnails', keywords: 'zoom grid size', shortcut: '+',
     category: 'navigate', run: () => bumpThumb(1) },
