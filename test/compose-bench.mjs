@@ -116,7 +116,8 @@ tally(d.nodes)
 console.log(`${layers} layers built in ${(buildMs / 1000).toFixed(1)} s:`, JSON.stringify(kinds))
 if (layers < 50) { console.error('FAIL the document should have 50 layers'); process.exitCode = 1 }
 
-const bench = (args) => req({ type: 'coBench', frames: 60, ...args })
+// GPU work per frame, to completion, without the present (see BENCHMARKS.md)
+const bench = (args) => req({ type: 'coBench', frames: 60, present: false, ...args })
 const fit = () => C(() => window.__albedo.compose.fit())
 const one = () => C(() => {
   const c = window.__albedo.compose
@@ -128,6 +129,8 @@ const one = () => C(() => {
 })
 await fit(); await page.waitForTimeout(800)
 const res = {}
+res.empty = await bench({ mutate: 'empty' })
+res.presentOnly = await bench({ mutate: 'present', present: true })
 res.fitStill = await bench({ mutate: 'none' })
 res.fitPan = await bench({ mutate: 'pan' })
 res.fitZoom = await bench({ mutate: 'zoom' })
@@ -147,17 +150,28 @@ res.brushStroke = await bench({
 await one(); await page.waitForTimeout(800)
 res.oneStill = await bench({ mutate: 'none' })
 res.onePan = await bench({ mutate: 'pan' })
+// painting at 100%, centre of the view
+const vc0 = await C(() => { const c = window.__albedo.compose; const v = c.state().view; const r = document.querySelector('.co-stage').getBoundingClientRect(); return [(r.width / 2 - v.offX) / v.zoom, (r.height / 2 - v.offY) / v.zoom] })
+res.oneBrush = await bench({
+  mutate: 'stroke', frames: 60, line: [vc0[0] - 300, vc0[1], 10, 0],
+  begin: { tool: 'brush', nodeId: strokeLayer, size: 60, hardness: 0.6, opacity: 1, flow: 0.5, spacing: 0.15, color: [1, 0.8, 0.2, 1], target: 'pixels', pressure: 'off' },
+})
 const stats = await req({ type: 'coStats' })
-// browser processes' resident memory (MB)
+// resident memory of the browser: every process below this one, summed (MB)
 const rss = (() => {
   try {
-    const pid = browser.process()?.pid
-    const out = execSync(`ps -o rss= --ppid ${pid}; ps -o rss= -p ${pid}`).toString().trim().split(/\s+/).map(Number)
-    return Math.round(out.reduce((a, b) => a + b, 0) / 1024)
+    const rows = execSync('ps -eo pid=,ppid=,rss=').toString().trim().split('\n').map((l) => l.trim().split(/\s+/).map(Number))
+    const kids = new Map()
+    for (const [pid, ppid] of rows) kids.set(ppid, [...(kids.get(ppid) ?? []), pid])
+    const mine = new Set()
+    const walk = (p) => { for (const k of kids.get(p) ?? []) { mine.add(k); walk(k) } }
+    walk(process.pid)
+    const kb = rows.filter(([pid]) => mine.has(pid)).reduce((a, r) => a + r[2], 0)
+    return kb ? Math.round(kb / 1024) : null
   } catch { return null }
 })()
 const vp = await C(() => { const r = document.querySelector('.co-stage').getBoundingClientRect(); return [Math.round(r.width * Math.min(devicePixelRatio, 2)), Math.round(r.height * Math.min(devicePixelRatio, 2))] })
-const ms = (r) => `${r.median.toFixed(2)} ms median, ${r.p95.toFixed(2)} p95, ${r.composites} composites`
+const ms = (r) => `${r.median.toFixed(2)} ms median, ${r.p95.toFixed(2)} p95, ${r.composites} composites${r.split != null ? `, dabs JS ${r.split.toFixed(1)} ms` : ''}${r.js != null ? `, frame JS ${r.js.toFixed(1)} ms` : ''}`
 console.log(`stage ${vp[0]}×${vp[1]} px`)
 for (const [k, v] of Object.entries(res)) console.log(`${k.padEnd(14)} ${ms(v)}`)
 console.log(`VRAM held by the document and history: ${(stats.vram / 2 ** 30).toFixed(2)} GB; browser RSS ${rss} MB`)

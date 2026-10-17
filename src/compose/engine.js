@@ -271,9 +271,10 @@ export function createComposeEngine(host) {
   let vc = null // { tex, rev, scale, ox, oy, cx0, cy0, cw, ch, margin }
   let settleTimer = null
   const raf = self.requestAnimationFrame?.bind(self) ?? ((f) => setTimeout(f, 8))
+  let benching = false // a benchmark draws its own frames
   function requestFrame(content = true) {
     if (content) { contentRev++; lastContent = performance.now() }
-    if (pending) return
+    if (pending || benching) return
     pending = true
     raf(() => { pending = false; try { frame() } catch (err) { console.error('[compose frame]', err) } })
   }
@@ -286,7 +287,7 @@ export function createComposeEngine(host) {
   const prefixSig = (vkey) => (k) => `${vkey}/${doc.depth}/` + doc.nodes.slice(0, k).map(sigOf).join(',') +
     '/' + plugins.map((p) => p.sigBelow?.(k) ?? '').join('')
 
-  function frame(force = false) {
+  function frame(force = false, show = true) {
     if (!gctx) return
     const t0 = performance.now()
     const [W, H] = targetSize()
@@ -348,7 +349,7 @@ export function createComposeEngine(host) {
       composites++
       if (m === 0 && !interacting) later(300)
     }
-    if (vc) {
+    if (vc && show) {
       // target px → cache px → uv
       const k2 = vc.scale / sx
       C.present(gctx, vc.tex, {
@@ -1150,7 +1151,10 @@ export function createComposeEngine(host) {
         if (saving) await saving.catch(() => {})
         if (dirty) await save().catch(() => {})
         await device.queue.onSubmittedWorkDone()
+        benching = true
         const times = []
+        const split = []
+        const js = []
         const c0 = composites
         const n = data.frames ?? 60
         const v0 = { ...view }
@@ -1160,19 +1164,33 @@ export function createComposeEngine(host) {
           else if (data.mutate === 'zoom') { view = { ...view, zoom: v0.zoom * (i % 2 ? 1.05 : 0.95) }; lastZoom = performance.now() }
           const t0 = performance.now()
           if (data.mutate === 'preview') { interacting = data.nodeId; doc = patchNode(doc, data.nodeId, data.patches[i % 2]) }
-          if (data.mutate === 'stroke') await handle({ type: CO.STROKE_PTS, pts: [[data.line[0] + data.line[2] * i, data.line[1] + data.line[3] * i, 1]] })
+          if (data.mutate === 'stroke') {
+            await handle({ type: CO.STROKE_PTS, pts: [[data.line[0] + data.line[2] * i, data.line[1] + data.line[3] * i, 1]] })
+            split.push(performance.now() - t0) // JS only: the GPU runs the dabs with the frame
+          }
           if (data.mutate === 'preview' || data.mutate === 'stroke') contentRev++
-          // 'none' redraws every layer; pan and zoom take the path the UI takes
-          frame(data.mutate === 'none' || data.mutate == null)
+          // 'none' redraws every layer; pan and zoom take the path the UI takes;
+          // 'empty' times the wait for an empty queue, 'present' a frame that
+          // composites nothing (the measuring floor)
+          // present: false leaves out putting the frame on screen, which under
+          // a virtual X display costs a copy back to the CPU a real display
+          // doesn't make
+          if (data.mutate === 'empty') device.queue.submit([])
+          else {
+            const tf = performance.now()
+            frame(data.mutate === 'none' || data.mutate == null, data.present !== false)
+            js.push(performance.now() - tf)
+          }
           await device.queue.onSubmittedWorkDone()
           times.push(performance.now() - t0)
         }
         if (data.mutate === 'stroke') await handle({ type: CO.STROKE_END })
+        benching = false
         interacting = null
         view = v0
         requestFrame()
         const sorted = [...times].sort((a, b) => a - b)
-        reply({ composites: composites - c0, median: sorted[Math.floor(n / 2)], p95: sorted[Math.floor(n * 0.95)], max: sorted[n - 1], mean: times.reduce((a, b) => a + b, 0) / n, vram: vramBytes() })
+        reply({ js: js.length ? [...js].sort((a, b) => a - b)[js.length >> 1] : undefined, split: split.length ? [...split].sort((a, b) => a - b)[split.length >> 1] : undefined, composites: composites - c0, median: sorted[Math.floor(n / 2)], p95: sorted[Math.floor(n * 0.95)], max: sorted[n - 1], mean: times.reduce((a, b) => a + b, 0) / n, vram: vramBytes() })
         return
       }
       case CO.STATS: reply({ vram: vramBytes(), frameMs: frameStats.ms, frames: frameStats.frames, layers: doc ? countLayers(doc.nodes) : 0, res: res.size, history: history.length }); return
