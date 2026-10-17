@@ -63,7 +63,7 @@ check('a Develop edit survives the tab crashing 1 s later', kept === 1)
 
 // ── Compose: a document, then the tab dies 3.5 s later ─────────────────────
 const ready = await page.waitForFunction(() => window.__albedo.compose.state().ready || window.__albedo.compose.state().error, null, { timeout: 30000 }).then(() => page.evaluate(() => window.__albedo.compose.state().ready))
-if (!ready) console.log('SKIP compose part: no WebGPU in this browser')
+if (!ready || !headed) console.log(`SKIP compose part: ${headed ? 'no WebGPU in this browser' : 'needs a GPU-backed browser (xvfb-run)'}`)
 else {
   await page.keyboard.press('e')
   const docId = await page.evaluate(async () => {

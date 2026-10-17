@@ -118,3 +118,16 @@ After every frame the worker renders the developed image small and returns a 256
 A 16-bit TIFF renders develop and finish into half-float targets, reads them back in strips, and is written with Deflate and an embedded sRGB profile (`src/io/tiff.js`).
 
 DNG export repackages the RAW mosaic (`src/io/dng.js`) with a colour matrix derived from LibRaw's and the edit as XMP inside. Original export copies the file untouched. Any export can write a Lightroom-compatible XMP sidecar (`src/io/xmpWrite.js`).
+
+## Compose
+
+Compose reuses the develop pass twice.
+
+- A **smart object** is a photo developed at full resolution into a half-float texture by the same code as Develop's view: geometry, lens, colour, masks, heal, removal, noise reduction and sharpening. It is redeveloped only when its edit changes.
+- A **Develop adjustment layer** runs the develop pass over a straight-colour copy of the composite below it, at view resolution.
+  - The input is display-encoded, so `inputIsLinear` is 0 and the display transform clamps.
+  - The blur pyramid is built at view scale with image-relative radii.
+  - Params `[14..15, 75, 95]` give the view's place in the document, so the vignette and grain stay with the document as the view zooms.
+  - The result goes back through the layer's mask, blend mode and Blend If.
+
+Everything else in Compose is its own set of passes in `src/compose/gpu/`: layer meshes, the 27 blend modes, adjustments, selections, the brush engine, liquify and layer styles. [ARCHITECTURE.md](ARCHITECTURE.md#compose) describes them.
