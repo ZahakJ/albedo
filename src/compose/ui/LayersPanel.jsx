@@ -110,7 +110,13 @@ export default function LayersPanel() {
   const drag = useRef(null)
   const listRef = useRef(null)
   useEffect(() => {
-    listRef.current?.querySelector('.co-row.is-active')?.scrollIntoView({ block: 'nearest' })
+    // scroll the list only: scrollIntoView would move the page too
+    const list = listRef.current
+    const row = list?.querySelector('.co-row.is-active')
+    if (!row) return
+    const lr = list.getBoundingClientRect(), rr = row.getBoundingClientRect()
+    if (rr.top < lr.top) list.scrollTop -= lr.top - rr.top
+    else if (rr.bottom > lr.bottom) list.scrollTop += rr.bottom - lr.bottom
   }, [doc?.activeId])
   if (!doc) return null
   const rows = rowsOf(doc.nodes)

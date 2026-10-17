@@ -406,7 +406,7 @@ export default function PropertiesPanel() {
   return (
     <div className="co-props" data-kind={node.kind}>
       {node.kind === 'adjust' && node.adjust.type === 'develop' && (
-        <p className="co-props-head"><span>{node.name}</span><span className="co-sub">Develop adjustment: everything below, through its mask</span></p>
+        <p className="co-props-head"><span>{node.name}</span><span className="co-sub">Develop adjustment</span></p>
       )}
       {node.kind === 'adjust' && node.adjust.type === 'develop' ? <AdjustBody node={node} /> : (
         <PanelSection id={`co-p-${node.kind}`} title={title}>
