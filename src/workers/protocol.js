@@ -26,6 +26,8 @@ export const MSG = {
                                 //   drawn geometry and reads a 5×5 average →
                                 //   SAMPLED (WB eyedropper + TAT)
   CLOSE: 'close',               // { photoId }
+  OPEN_SESSION: 'openSession',  // { photoId, editDoc } — open a photo Compose already
+                                //   holds (a smart object) in Develop: no decode
   PROFILE: 'profile',           // { profileId, bytes: ArrayBuffer } — an imported DCP camera
                                 //   profile; docs name it as look.profile 'dcp:<id>'
   PATCH: 'patch',               // { photoId, patchId, width, height, data: Uint8ClampedArray

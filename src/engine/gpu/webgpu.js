@@ -16,10 +16,15 @@ export async function createWebGpu(canvas) {
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
   if (!adapter) return null
   // default limits cap textures at 8192 px; 45–100 MP sensors are wider
+  // Compose's 32-bit documents filter and blend rgba32float where the
+  // adapter offers it; Develop never needs either
+  const optional = ['float32-filterable', 'float32-blendable'].filter((f) => adapter.features.has(f))
   const device = await adapter.requestDevice({
+    requiredFeatures: optional,
     requiredLimits: {
       maxTextureDimension2D: adapter.limits.maxTextureDimension2D,
       maxBufferSize: adapter.limits.maxBufferSize,
+      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
     },
   })
   // validation errors are otherwise silent: a broken pipeline just draws black
@@ -40,6 +45,7 @@ export async function createWebGpu(canvas) {
   // export renders to rgba8unorm regardless of the canvas's preferred format
   const exportPipeline = format === 'rgba8unorm' ? pipeline : makePipeline('rgba8unorm')
   let half = null // 16-bit export target, built on the first TIFF
+  let devMid = null // developTo's develop→finish intermediate, cached by size
 
   const sampler = device.createSampler({
     magFilter: 'linear', minFilter: 'linear',
@@ -891,6 +897,31 @@ export async function createWebGpu(canvas) {
       target.destroy()
       return out
     },
+
+    // full-resolution render → rgba16float texture kept on the GPU (Compose:
+    // smart objects and Develop adjustment layers). The caller owns it.
+    // into: an existing rgba16float texture of w×h (its first mip level is
+    // drawn), or null for a new one
+    developTo(img, params, w, h, lut, aux, fin_, masks, brush, heal, into = null) {
+      half ??= makePipeline('rgba16float')
+      const usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+      const target = into ?? device.createTexture({ size: [w, h], format: 'rgba16float', usage })
+      const view = target.createView({ baseMipLevel: 0, mipLevelCount: 1 })
+      if (fin_) {
+        if (devMid?.width !== w || devMid?.height !== h) {
+          devMid?.destroy()
+          devMid = device.createTexture({ size: [w, h], format: 'rgba16float', usage })
+        }
+        draw(half, img.texture, devMid.createView(), params, lut, aux, masks, brush, heal)
+        finishDraw(view, 'rgba16float', devMid.createView(), fin_, brush)
+      } else {
+        draw(half, img.texture, view, params, lut, aux, masks, brush, heal)
+      }
+      return target
+    },
+    // the raw device for Compose, which builds its own pipelines on it
+    gpu: { device, format, adapter },
 
     destroyImage(img) { img.texture.destroy() },
     // atlas: { width, height, data: Uint8Array RGBA } | null (none) |

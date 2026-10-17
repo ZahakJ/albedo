@@ -46,7 +46,9 @@ export default defineConfig({
     exclude: ['@sqlite.org/sqlite-wasm', 'libraw-wasm',
       // subpath used by the segment worker — listed so a first-run discovery
       // never triggers the optimizer's full page reload mid-test
-      'onnxruntime-web', 'onnxruntime-web/wasm', 'onnxruntime-web/webgpu'],
+      'onnxruntime-web', 'onnxruntime-web/wasm', 'onnxruntime-web/webgpu',
+      // HarfBuzz locates harfbuzz.wasm relative to import.meta.url
+      'harfbuzzjs'],
   },
   build: { target: 'es2022' },
 })

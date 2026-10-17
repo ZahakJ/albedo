@@ -13,7 +13,7 @@ const initialTheme = (() => {
 if (typeof document !== 'undefined') document.documentElement.dataset.theme = initialTheme
 
 let state = {
-  surface: 'library', // 'library' | 'develop' | 'canvas'
+  surface: 'library', // 'library' | 'develop' | 'compose'
   mode: 'grid', // 'grid' | 'compare' | 'survey' | 'cull' — Library sub-view
   selectedId: null,
   selection: new Set(),

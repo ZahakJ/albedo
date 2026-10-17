@@ -16,7 +16,8 @@
 //   [ 4] highlights  [ 5] shadows     [ 6] whites      [ 7] blacks
 //   [ 8] vibrance    [ 9] saturation  [10] hasCurve    [11] inputIsLinear
 //   [12] clipOverlay [13] mixOn (any colormix/vibsat nonzero; the worker
-//        zeroes vibsat, colormix and mixOn while B&W is on) [14..15] pad
+//        zeroes vibsat, colormix and mixOn while B&W is on) [14..15] frame
+//        offset x, y (Compose; see [75])
 //   [16+4b .. 18+4b] h, s, l of band b — red orange yellow green aqua blue
 //                    purple magenta — [19+4b] pad
 //   [48] clarity     [49] texture     [50] dehaze      [51] resScale
@@ -30,13 +31,17 @@
 //   [68] grading highlights h     [69] grading highlights s
 //   [70] grading blending 0..100  [71] grading balance -100..100
 //   [72] gradingOn (any zone s nonzero) [73] bwOn
-//   [74] healCount (0..32, healU below) [75] pad
+//   [74] healCount (0..32, healU below) [75] frame scale x — with [95]
+//        (scale y) and [14..15], the output's place in a larger frame:
+//        frame uv = offset + uv·scale. Compose renders adjustment layers
+//        over a view of the document, and the vignette follows the
+//        document. 0 = the output is the frame
 //   [76..83] B&W mix weight per band, red..magenta (-100..100)
 //   [84] lens distortion (-100..100)  [85] caRed  [86] caBlue (-100..100)
 //   [87] defringe (0..100)  [88] lensOn (any of 84..87 nonzero)
 //   [89] persp v (-100..100)  [90] persp h  [91] perspOn
 //   [92] toneMap 0=clamp 1=AgX  [93] baseline EV (AgX only)
-//   [94] look saturation (AgX only, 1 = neutral)  [95] pad
+//   [94] look saturation (AgX only, 1 = neutral)  [95] frame scale y
 //   [96] lensfunOn  [97..100] distortion a1..a4: inverse map from output to
 //        source radius r_d = r·(1 + a1 r + a2 r² + a3 r³ + a4 r⁴), r = 1 at
 //        the source half-diagonal  [101..103] TCA red v, c, b and
@@ -655,8 +660,12 @@ void main() {
   // (uv-circle = frame-shaped ellipse); 100 is physically circular. r is
   // normalized so the far corner sits at 1; amount ±100 → ±1.2 stops there.
   if (P[13].x != 0.0) {
-    float ax = mix(1.0, (cwh.x * dim.x) / (cwh.y * dim.y), clamp(P[13].z / 100.0, 0.0, 1.0));
-    vec2 dv = vec2((uv.x - 0.5) * ax, uv.y - 0.5);
+    bool framed = P[18].w > 0.0;
+    vec2 fs = framed ? vec2(P[18].w, P[23].w) : vec2(1.0);
+    vec2 fuv2 = framed ? vec2(P[3].z, P[3].w) + uv * fs : uv;
+    vec2 fwh = cwh * dim / fs;
+    float ax = mix(1.0, fwh.x / fwh.y, clamp(P[13].z / 100.0, 0.0, 1.0));
+    vec2 dv = vec2((fuv2.x - 0.5) * ax, fuv2.y - 0.5);
     float r = length(dv) / length(vec2(0.5 * ax, 0.5));
     float inner = P[13].y / 100.0 * 0.7 + 0.15;
     float vt = smoothstep(inner, inner + 0.05 + 1.1 * P[13].w / 100.0, r);

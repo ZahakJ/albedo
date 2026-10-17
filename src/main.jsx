@@ -10,7 +10,7 @@ import './styles/library.css'
 import './styles/filmstrip.css'
 import './styles/palette.css'
 import './styles/views.css'
-import './styles/canvas.css'
+import './styles/compose.css'
 import './styles/narrow.css'
 
 createRoot(document.getElementById('root')).render(<App />)

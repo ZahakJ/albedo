@@ -10,6 +10,9 @@ let timerId = 0
 const listeners = new Set()
 const replyWaiters = new Map()
 
+// Compose talks to the same worker (it shares the GPU device with Develop)
+export const renderWorker = () => worker
+
 export const onRenderEvent = (fn) => {
   listeners.add(fn)
   return () => listeners.delete(fn)
@@ -25,7 +28,7 @@ export async function initRender(canvasEl, backendPref) {
   worker = new Worker(new URL('../workers/render.worker.js', import.meta.url), { type: 'module' })
   worker.onerror = (e) => console.error('[render.worker]', e.message ?? e)
   worker.onmessage = ({ data }) => {
-    if (data.type === MSG.ERROR) console.error('[render.worker]', data.message)
+    if (data.type === MSG.ERROR && !(typeof data.re === 'string')) console.error('[render.worker]', data.message)
     if (data.re && replyWaiters.has(data.re)) {
       const { resolve, reject } = replyWaiters.get(data.re)
       replyWaiters.delete(data.re)
@@ -45,6 +48,9 @@ export async function initRender(canvasEl, backendPref) {
 export const openPhoto = (photoId, source, editDoc, opts) =>
   request({ type: MSG.OPEN, photoId, source, editDoc, sync: !!opts?.sync },
     source instanceof ImageBitmap ? [source] : [source.buffer.buffer])
+
+// a photo Compose holds as a smart object, opened in Develop without a decode
+export const openSession = (photoId, editDoc) => request({ type: MSG.OPEN_SESSION, photoId, editDoc })
 
 // flags (optional): { before: true } renders the un-edited default doc,
 // { clipOverlay: true } paints clipped highlights/shadows in the display,

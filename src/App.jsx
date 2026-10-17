@@ -35,8 +35,10 @@ import {
 import { xmpSummary } from './io/xmp.js'
 import { setCommandHost } from './state/commands.js'
 import { openInDevelop } from './state/openPhoto.js'
-import CanvasSurface from './edit/CanvasSurface.jsx'
-import { initCanvas, canvasE2e, dropImageFiles, useCanvasState } from './state/canvasClient.js'
+import ComposeSurface from './compose/ui/ComposeSurface.jsx'
+import { useCompose, getCompose, composeE2e, placeImage, initCompose } from './state/composeClient.js'
+import { openFileInCompose } from './compose/ui/StartScreen.jsx'
+import { editInCompose, backToCompose } from './compose/ui/smartEdit.js'
 import { toggleBefore, toggleClipOverlay } from './ui/devFlags.js'
 import { getMaskUi, toggleMaskMode, handleMaskKey } from './ui/MaskPanel.jsx'
 
@@ -44,12 +46,22 @@ const IMPORT_RE = /\.(jpe?g|png|webp|avif|gif|bmp|tiff?|cr2|cr3|nef|nrw|arw|srf|
 const ACCEPT = 'image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.raf,.orf,.rw2,.pef,.srw,.xmp,.dcp'
 const COLOR_KEYS = { 6: 'red', 7: 'yellow', 8: 'green', 9: 'blue' }
 
+// files dropped on Compose
+async function dropInCompose(files) {
+  for (const f of [...files]) {
+    try {
+      if (getCompose().doc && /^image\//.test(f.type) && !/tiff/.test(f.type)) await placeImage(f, f.name.replace(/\.[^.]+$/, ''))
+      else await openFileInCompose(f)
+    } catch (err) { toast(`Could not open ${f.name}: ${err.message}`) }
+  }
+}
+
 export default function App() {
   const canvasRef = useRef(null)
-  const cvCanvasRef = useRef(null) // canvas-surface display canvas (own worker)
+  const coCanvasRef = useRef(null) // Compose's display canvas (drawn by the render worker)
   const fileRef = useRef(null)
   const { photo, backend } = useEditState()
-  const { doc: cvDoc } = useCanvasState()
+  const { doc: coDoc, editingSmart } = useCompose()
   const { surface, selectedId, zoom, theme, lightsOut } = useViewState()
   const { photos, filter, importing } = useCatalog()
   const [dragOver, setDragOver] = useState(false)
@@ -63,13 +75,14 @@ export default function App() {
     // ?backend=webgl2 forces the fallback — kept forever for parity testing
     const pref = new URLSearchParams(location.search).get('backend') ?? 'webgpu'
     initRender(canvasRef.current, pref).then(({ backend }) => setBackend(backend))
-    initCanvas(cvCanvasRef.current).catch((err) => console.error('[canvas init]', err))
+    // Compose shares the render worker, which exists from here on
+    initCompose(coCanvasRef.current)
     initCatalog()
     loadPresets()
     loadProfiles()
     // e2e hook. Tests must reach the app's OWN module instances through this:
     // a dynamic import() from the page can resolve to a second copy of a store.
-    window.__albedo = { edit: getEditState, loadDoc, loadDocVersion, listDocs, catalog: getCatalogState, presets: getPresetState, view: getViewState, maskUi: getMaskUi, loadOriginal, preview: loadPreviewBlob, canvas: canvasE2e, exportPhoto, rebuildThumb, loadThumbBlob, deletePhotos, denoise: getDenoiseState }
+    window.__albedo = { edit: getEditState, loadDoc, loadDocVersion, listDocs, catalog: getCatalogState, presets: getPresetState, view: getViewState, maskUi: getMaskUi, loadOriginal, preview: loadPreviewBlob, compose: composeE2e, exportPhoto, rebuildThumb, loadThumbBlob, deletePhotos, denoise: getDenoiseState }
   }, [])
 
   const visible = photos.filter((p) => matchesFilter(p, filter))
@@ -279,8 +292,12 @@ export default function App() {
           return
         }
         if (k === 'e') {
-          // canvas export is handled by the surface's own capture handler
-          if (surface === 'canvas') return
+          // Compose owns ⌘E (merge down); Develop's ⌘⇧E opens the photo there
+          if (surface === 'compose') return
+          if (e.shiftKey && surface === 'develop') {
+            if (getEditState().doc) { e.preventDefault(); editInCompose() }
+            return
+          }
           // develop: current photo; library: the selection (batch)
           const can = surface === 'develop'
             ? !!getEditState().doc
@@ -288,7 +305,6 @@ export default function App() {
           if (can) { e.preventDefault(); setOverlay('export') }
           return
         }
-        if (k === 'z' && surface === 'canvas') return // canvas history only
         if (k === 'c' && surface === 'develop' && getEditState().doc && getSelection().isCollapsed) {
           e.preventDefault()
           setOverlay('copy')
@@ -312,13 +328,11 @@ export default function App() {
       const ids = v.selection.size ? [...v.selection] : v.selectedId != null ? [v.selectedId] : []
       const sel = photos.find((p) => p.id === v.selectedId) ?? null
 
-      // canvas surface owns its keys (capture handler in CanvasSurface runs
-      // first); only surface switching + lights-out pass through here
-      if (surface === 'canvas') {
+      // Compose owns its keys (Photoshop's; capture handler in
+      // ComposeSurface runs first); only lights-out and the sheet pass here
+      if (surface === 'compose') {
         switch (e.key) {
-          case 'g': case 'G': setMode('grid'); setSurface('library'); return
-          case 'd': case 'D': if (sel) openFor(sel); return
-          case 'l': case 'L': cycleLightsOut(); return
+          case 'F': cycleLightsOut(); return
           case 'Escape': if (getViewState().lightsOut) setLightsOut(0); return
           case '?': e.preventDefault(); setOverlay('cheatsheet'); return
         }
@@ -336,8 +350,8 @@ export default function App() {
         // G: grid mode first, then Library from Develop
         case 'g': case 'G': setMode('grid'); setSurface('library'); return
         case 'd': case 'D': if (sel) openFor(sel); return
-        // E: the Canvas surface (layer editor) — recent docs grid if none open
-        case 'e': case 'E': setSurface('canvas'); return
+        // E: Compose (the layered editor) — recent documents if none open
+        case 'e': case 'E': setSurface('compose'); return
         // view modes (library only); each view owns its keys in capture phase
         case 'c':
           if (surface === 'library' && visible.length >= 2) setMode('compare')
@@ -419,9 +433,9 @@ export default function App() {
       onDrop={(e) => {
         e.preventDefault()
         setDragOver(false)
-        // canvas surface: an image drop becomes a new doc (or a new layer)
-        if (getViewState().surface === 'canvas')
-          dropImageFiles(e.dataTransfer.files).catch((err) => console.error('[canvas drop]', err))
+        // Compose: an image drop becomes a layer (or a new document), a PSD,
+        // layered TIFF or .albedo file opens as a document
+        if (getViewState().surface === 'compose') dropInCompose(e.dataTransfer.files)
         else doImport(e.dataTransfer.files)
       }}
     >
@@ -430,7 +444,7 @@ export default function App() {
         <span className="topbar-sep" aria-hidden="true" />
         <span className="topbar-file mono">
           {surface === 'develop' ? photo?.name ?? ''
-            : surface === 'canvas' ? cvDoc?.name ?? ''
+            : surface === 'compose' ? coDoc?.name ?? ''
             : selPhoto?.name ?? ''}
         </span>
         <nav className="seg surface-seg" role="tablist" aria-label="Surface">
@@ -452,11 +466,11 @@ export default function App() {
           >Develop</button>
           <button
             role="tab"
-            aria-selected={surface === 'canvas'}
-            className={`seg-btn${surface === 'canvas' ? ' is-on' : ''}`}
-            data-tip="Canvas" data-tip-key="E"
-            onClick={() => setSurface('canvas')}
-          >Canvas</button>
+            aria-selected={surface === 'compose'}
+            className={`seg-btn${surface === 'compose' ? ' is-on' : ''}`}
+            data-tip="Compose: layers, retouching, type" data-tip-key="E"
+            onClick={() => setSurface('compose')}
+          >Compose</button>
         </nav>
         <span className="topbar-flex" aria-hidden="true" />
         {importing && (
@@ -507,7 +521,15 @@ export default function App() {
 
       <main className="surface">
         {/* canvas must stay mounted: its control transfers to the worker once */}
-        <div className={surface === 'develop' ? 'fill' : 'hidden'}>
+        <div className={surface === 'develop' ? 'fill develop-wrap' : 'hidden'}>
+          {editingSmart && (
+            <div className="smart-bar" role="status">
+              <span>Editing a smart object</span>
+              <span className="smart-bar-name mono">{editingSmart.name}</span>
+              <span className="topbar-flex" />
+              <button type="button" className="btn-primary" onClick={backToCompose}>Back to Compose</button>
+            </div>
+          )}
           <Develop canvasRef={canvasRef} />
         </div>
         <div className={surface === 'library' && !catalogEmpty ? 'fill' : 'hidden'}>
@@ -520,14 +542,14 @@ export default function App() {
             onClearRejects={clearRejects}
           />
         </div>
-        {/* canvas display element also stays mounted: its control transfers once */}
-        <div className={surface === 'canvas' ? 'fill' : 'hidden'}>
-          <CanvasSurface
-            canvasRef={cvCanvasRef}
-            active={surface === 'canvas' && !overlay && !confirm}
+        {/* Compose's display canvas also stays mounted: its control transfers once */}
+        <div className={surface === 'compose' ? 'fill' : 'hidden'}>
+          <ComposeSurface
+            canvasRef={coCanvasRef}
+            active={surface === 'compose' && !overlay && !confirm}
           />
         </div>
-        {catalogEmpty && surface !== 'canvas' && (
+        {catalogEmpty && surface !== 'compose' && (
           <div className={`dropzone${dragOver ? ' is-over' : ''}`}>
             <button className="dropzone-frame" onClick={() => fileRef.current?.click()}>
               <p className="dropzone-hero">Drop photos here</p>
@@ -546,7 +568,7 @@ export default function App() {
         />
       </main>
 
-      {!catalogEmpty && surface !== 'canvas' && (
+      {!catalogEmpty && surface !== 'compose' && (
         <Filmstrip photos={visible} onOpen={openFor} onMenu={onCellMenu} />
       )}
 

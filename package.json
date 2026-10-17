@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
+    "bidi-js": "^1.1.0",
+    "harfbuzzjs": "^1.6.3",
     "libraw-wasm": "1.6.0",
     "onnxruntime-web": "^1.27.0",
     "react": "^18.3.1",

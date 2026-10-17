@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { newEditDoc, setParam, MODULE_DEFAULTS } from '../engine/editdoc.js'
-import { sendParams } from './renderClient.js'
-import { saveDoc } from './catalogStore.js'
+import { sendParams as sendToRender } from './renderClient.js'
+import { saveDoc as saveToCatalog } from './catalogStore.js'
 
 // Plain-module store. During a slider gesture the DOM is updated directly and
 // only the render worker hears about every frame; the store (and React)
@@ -15,6 +15,46 @@ let state = {
   historyAt: -1,
 }
 const listeners = new Set()
+
+// A bound target redirects the store: Compose binds a Develop adjustment
+// layer (sink renders and saves into the layer, not the photo), and an open
+// smart object binds its embedded edit (Develop still renders it, but saves
+// go to the smart object). bindTarget stashes Develop's own state;
+// unbindTarget brings it back untouched.
+let sink = null // { render: bool, preview(doc), commit(doc) }
+let stash = null
+const sendParams = (photoId, doc, gesture, flags) => {
+  if (sink) {
+    if (sink.render) sendToRender(photoId, doc, gesture, flags)
+    if (gesture) sink.preview?.(doc)
+    return
+  }
+  sendToRender(photoId, doc, gesture, flags)
+}
+const saveDoc = (photoId, doc) => {
+  if (sink) { sink.commit(doc); return }
+  saveToCatalog(photoId, doc)
+}
+export function bindTarget(photo, doc, target) {
+  if (!sink) stash = state
+  sink = target
+  state = { ...state, photo, doc, history: [doc], historyAt: 0 }
+  emit()
+}
+// the bound document changed from outside (Compose undo, another layer)
+export function retargetDoc(doc) {
+  if (!sink) return
+  state = { ...state, doc }
+  emit()
+}
+export function unbindTarget() {
+  if (!sink) return
+  sink = null
+  state = { ...stash, backend: state.backend }
+  stash = null
+  emit()
+}
+export const isBound = () => !!sink
 
 const emit = () => { for (const fn of listeners) fn() }
 const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn) }

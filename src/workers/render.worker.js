@@ -8,6 +8,8 @@ import { lensProfileFor, packLensProfile } from '../engine/lensProfile.js'
 import { parseDcp } from '../io/dcp.js'
 import { encodeTiff16Deflate } from '../io/tiff.js'
 import { buildDcpTransform, neutralFromCamMul } from '../engine/dcpColor.js'
+import { createComposeEngine } from '../compose/engine.js'
+import { installCompose } from '../compose/plugins.js'
 
 // The render worker owns the GPU. Main thread never blocks on a render;
 // slider drags arrive as coalesced PARAMS messages and draw here.
@@ -838,6 +840,20 @@ function syncPatches(doc, p) {
 
 const closeCurrent = () => {
   if (!current) return
+  if (current.keep) {
+    // Compose holds this photo as a smart object: keep its textures, drop
+    // only the device-wide state that belongs to Develop's open photo
+    if (current.dcp) device.setProfile(null, null)
+    if (current.dn) { current.dn.port?.close(); current.dn.release?.(); device.setDenoised(null); current.dn = null }
+    if (current.atlas) device.setPatches(null, null)
+    current = null
+    lastDoc = null
+    lastMasks = null
+    lastHeal = null
+    lastOverlay = -1
+    lastFlags = null
+    return
+  }
   if (current.dcp) {
     device.setProfile(null, null)
     if (scratchGl) scratchGl.setProfile(null, null)
@@ -870,6 +886,171 @@ const closeCurrent = () => {
 
 const post = (msg, transfer) => self.postMessage(msg, transfer ?? [])
 
+// ── Compose host ───────────────────────────────────────────────────────────
+// Compose (src/compose) shares this worker's GPU device. Smart objects are
+// photos developed by the code above, each on its own session (the same
+// shape as `current`); Develop adjustment layers run the develop pass over
+// the composite below them.
+let compose = null
+const sessions = new Map() // photoId → session
+const sessionRevs = new Map()
+const bumpSession = (id) => sessionRevs.set(id, (sessionRevs.get(id) ?? 0) + 1)
+
+function sessionOf(photoId) {
+  if (current?.photoId === photoId && (current.keep || !sessions.has(photoId))) return current
+  return sessions.get(photoId) ?? null
+}
+
+// run fn with `current` swapped to session s; restores Develop's device state
+function withSession(s, fn) {
+  const prev = current
+  const swap = s !== prev
+  current = s
+  try {
+    if (swap && (s?.atlas || prev?.atlas)) device.setPatches(s?.atlas ?? null, null)
+    return fn()
+  } finally {
+    current = prev
+    if (swap) {
+      if (s?.atlas || prev?.atlas) device.setPatches(prev?.atlas ?? null, null)
+      if (prev && lastDoc) syncPatches(lastFlags?.before ? null : lastDoc, lastParams)
+      if (s?.dcp && s.dcp !== prev?.dcp) device.setProfile(prev?.dcp?.t.hsv ?? null, prev?.dcp?.t.toneLut ?? null)
+    }
+  }
+}
+
+async function sessionFromSource(photoId, source) {
+  const decoded = !(source instanceof ImageBitmap)
+  const lensP = decoded ? lensProfileFor(appBase, source.exif).catch(() => null) : null
+  const img = decoded ? device.uploadDecoded(source, 1) : device.uploadImage(source)
+  if (decoded && !source.hl?.clipped) source.buffer = null
+  return {
+    photoId, img, fullW: source.width, fullH: source.height,
+    bitmap: decoded ? null : source, payload: decoded ? source : null, recon: 1,
+    lensProfile: await lensP, keep: true,
+  }
+}
+
+const ADJUST_MODULES = ['wb', 'exposure', 'tone', 'curve', 'colormix', 'vibsat', 'bw', 'grading', 'localcontrast', 'vignette', 'grain', 'detail']
+let adjTex = null
+
+const composeHost = {
+  post,
+  get appBase() { return appBase },
+  get gpu() { return device.gpu },
+  hasSession: (photoId) => !!sessionOf(photoId),
+  sessionRev: (photoId) => sessionRevs.get(photoId) ?? 0,
+  adoptCurrent(photoId) {
+    if (current?.photoId !== photoId) throw new Error('that photo is not open in Develop')
+    current.keep = true
+    sessions.set(photoId, current)
+    bumpSession(photoId)
+  },
+  retainSession(photoId) {
+    const s = sessionOf(photoId)
+    if (s) { s.keep = true; sessions.set(photoId, s) }
+  },
+  async registerSource(photoId, source) {
+    const old = sessions.get(photoId)
+    if (old && old !== current) destroySession(old)
+    sessions.set(photoId, await sessionFromSource(photoId, source))
+    bumpSession(photoId)
+  },
+  releaseSessions() {
+    for (const [id, s] of sessions) {
+      if (s === current) { s.keep = false; continue }
+      destroySession(s)
+    }
+    sessions.clear()
+  },
+  smartDims(photoId, editDoc) {
+    const s = sessionOf(photoId)
+    if (!s) return [1, 1]
+    return withSession(s, () => outDimsOf(paramsFrom(editDoc, s.img)))
+  },
+  developSmart(photoId, editDoc, into) {
+    const s = sessionOf(photoId)
+    if (!s) return null
+    const developing = current
+    return withSession(s, () => {
+      ensureRecon(editDoc)
+      const p = paramsFrom(editDoc, s.img)
+      syncPatches(editDoc, p)
+      if (p[112] && s.dcp) device.setProfile(s.dcp.t.hsv ?? null, s.dcp.t.toneLut ?? null)
+      if (s !== developing) p[111] = 0 // the denoised capture belongs to Develop's photo
+      const lut = lutFrom(editDoc)
+      const masks = masksFrom(editDoc)
+      const heal = applyHeal(p, healFrom(editDoc))
+      if (masks?.needsAux) p[56] = 1
+      const d = detailFrom(editDoc, !!s.payload)
+      const nrImg = nrFor(d)
+      if (nrImg) p[11] = 1
+      const [w, h] = outDimsOf(p)
+      const fin = finFor(d, 1, 0, null, grainDesc(grainFrom(editDoc), p[51]), geomFor(p))
+      return device.developTo(nrImg ?? s.img, p, w, h, lut, auxFor(p), fin, masks?.arr ?? null,
+        brushFor(editDoc), heal?.arr ?? null, into)
+    })
+  },
+  // Develop modules over a straight-colour view of the composite (Ut)
+  developAdjust(Ut, modules, ctx) {
+    const W = ctx.W
+    const H = ctx.H
+    const [sx, sy, ox, oy] = ctx.view
+    const img = { texture: Ut, width: W, height: H, isLinear: ctx.linear ? 1 : 0 }
+    const pick = {}
+    for (const k of ADJUST_MODULES) if (modules[k]) pick[k] = modules[k]
+    const editDoc = { modules: { ...pick, look: { profile: 'linear' } } }
+    return withSession(null, () => {
+      const p = paramsFrom(editDoc, img)
+      p[92] = 0 // clamp display transform: the composite is already display-referred
+      p[51] = sx
+      p[14] = -ox / sx / ctx.dw
+      p[15] = -oy / sy / ctx.dh
+      p[75] = W / sx / ctx.dw
+      p[95] = H / sy / ctx.dh
+      p[96] = 0
+      p[110] = 0
+      const lut = lutFrom(editDoc)
+      const d = detailFrom(editDoc, false)
+      const nr = d.lumaNR || d.chromaNR ? device.computeNR(img, d.lumaNR, d.chromaNR) : null
+      if (nr) p[11] = 1
+      const aux = p[56] ? device.computeAux(img, sx) : null
+      const geom = { geom: [0, p[14], p[15], p[75], p[95], 1], srcW: ctx.dw, srcH: ctx.dh, perspV: 0, perspH: 0, distortion: 0 }
+      const fin = finFor(d, sx, 0, null, grainDesc(grainFrom(editDoc), 1), geom)
+      if (adjTex?.width !== W || adjTex?.height !== H) {
+        adjTex?.destroy()
+        adjTex = device.gpu.device.createTexture({
+          size: [W, H], format: 'rgba16float',
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+        })
+      }
+      device.developTo(nr?.img ?? img, p, W, H, lut, aux, fin, null, null, null, adjTex)
+      aux?.destroy()
+      nr?.destroy()
+      return adjTex
+    })
+  },
+}
+
+function destroySession(s) {
+  device.destroyImage(s.img)
+  s.aux?.destroy()
+  s.nr?.destroy()
+  s.brush?.tex.destroy()
+}
+
+async function composeMessage(data) {
+  if (!compose) {
+    if (device?.backend !== 'webgpu') {
+      post({ re: data.id, type: 'coError', message: 'Compose needs WebGPU' })
+      return
+    }
+    compose = createComposeEngine(composeHost)
+    installCompose(compose.E)
+  }
+  await compose.handle(data)
+}
+
 // Messages are handled strictly in order: async handlers don't queue by
 // themselves, and an OPEN racing a slow INIT (GPU adapter request) must wait,
 // not crash on a null device.
@@ -878,6 +1059,7 @@ self.onmessage = (e) => { chain = chain.then(() => handle(e.data)) }
 
 async function handle(data) {
   try {
+    if (data.type?.startsWith('co')) { await composeMessage(data); return }
     switch (data.type) {
       case MSG.INIT: {
         if (data.base) appBase = data.base
@@ -931,6 +1113,35 @@ async function handle(data) {
         renderCurrent()
         if (data.sync) await device.sync?.()
         post({ re: data.id, type: MSG.FRAME, photoId: current.photoId })
+        await computeScopes(false)
+        break
+      }
+
+      case MSG.OPEN_SESSION: {
+        // a smart object opened in Develop: the session Compose holds
+        // becomes Develop's current photo, textures and caches included
+        const s = sessions.get(data.photoId)
+        if (!s) throw new Error('no such session')
+        if (current !== s) closeCurrent()
+        current = s
+        if (current.atlas) device.setPatches(current.atlas, null)
+        if (current.dcp) device.setProfile(current.dcp.t.hsv ?? null, current.dcp.t.toneLut ?? null)
+        const lp = current.lensProfile
+        post({ type: MSG.LENS, photoId: data.photoId, lens: lp && { name: lp.name, maker: lp.maker, distortion: lp.distortion } })
+        lastParams = paramsFrom(data.editDoc, current.img)
+        syncPatches(data.editDoc, lastParams)
+        lastLut = lutFrom(data.editDoc)
+        lastDetail = detailFrom(data.editDoc, !!current.payload)
+        lastGrain = grainFrom(data.editDoc)
+        lastDoc = data.editDoc
+        lastMasks = masksFrom(data.editDoc)
+        lastHeal = applyHeal(lastParams, healFrom(data.editDoc))
+        lastOverlay = -1
+        lastFlags = null
+        if (lastMasks?.needsAux) lastParams[56] = 1
+        view = { ...view, zoom: 'fit' }
+        renderCurrent()
+        post({ re: data.id, type: MSG.FRAME, photoId: current.photoId, width: current.fullW, height: current.fullH })
         await computeScopes(false)
         break
       }

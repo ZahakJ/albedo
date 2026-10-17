@@ -11,10 +11,8 @@ import { getClipboard, allPresets, applyPresetToPhotos } from './presetStore.js'
 import { toggleBefore, toggleClipOverlay } from '../ui/devFlags.js'
 import { getVersionState, createVersion, switchVersion, versionLabel } from './versionStore.js'
 import { toggleMaskMode, getMaskUi, setTool, addBrushMask } from '../ui/MaskPanel.jsx'
-import {
-  getCanvasState, openDevelopedInCanvas, saveCanvasDoc, closeCanvasDoc,
-  cvUndo, cvRedo,
-} from './canvasClient.js'
+import { getCompose, saveDocument, closeDocument, undo as coUndo, redo as coRedo, op as coOp } from './composeClient.js'
+import { editInCompose } from '../compose/ui/smartEdit.js'
 
 // ONE registry feeds both the ⌘K palette and the '?' cheat-sheet.
 // Row: { id, title, keywords?, shortcut?, category, when?, run?,
@@ -35,8 +33,8 @@ const selIds = () => {
   return v.selection.size ? [...v.selection] : v.selectedId != null ? [v.selectedId] : []
 }
 const inDev = () => getViewState().surface === 'develop'
-const inCanvas = () => getViewState().surface === 'canvas'
-const hasCanvasDoc = () => !!getCanvasState().doc
+const inCompose = () => getViewState().surface === 'compose'
+const hasComposeDoc = () => !!getCompose().doc
 const hasSel = () => selIds().length > 0
 const hasDoc = () => !!getEditState().doc
 const cull = (patch) => () => { for (const id of selIds()) setMeta(id, patch) }
@@ -77,22 +75,26 @@ export const registry = [
     } },
   { id: 'open-files', title: 'Open Files…', keywords: 'import add load', shortcut: 'O',
     category: 'navigate', run: () => host.openFiles() },
-  { id: 'go-canvas', title: 'Go to Canvas', keywords: 'layers editor photoshop compose',
-    shortcut: 'E', category: 'navigate', when: () => !inCanvas(),
-    run: () => setSurface('canvas') },
-  { id: 'edit-in-canvas', title: 'Edit in Canvas', keywords: 'layers rasterize photoshop composite',
-    category: 'develop', noSheet: true, when: () => inDev() && hasDoc(),
-    run: () => openDevelopedInCanvas().catch(() => {}) },
-  { id: 'canvas-save', title: 'Save Canvas Document', keywords: 'canvas persist project', noSheet: true,
-    category: 'workflow', when: () => inCanvas() && hasCanvasDoc(),
-    run: () => saveCanvasDoc().catch(() => {}) },
-  { id: 'canvas-close', title: 'Close Canvas Document', keywords: 'canvas recent documents', noSheet: true,
-    category: 'workflow', when: () => inCanvas() && hasCanvasDoc(),
-    run: () => saveCanvasDoc().catch(() => {}).then(() => closeCanvasDoc()) },
-  { id: 'canvas-undo', title: 'Undo (Canvas)', keywords: 'canvas history back', noSheet: true,
-    category: 'workflow', when: () => inCanvas() && hasCanvasDoc(), run: () => cvUndo() },
-  { id: 'canvas-redo', title: 'Redo (Canvas)', keywords: 'canvas history forward', noSheet: true,
-    category: 'workflow', when: () => inCanvas() && hasCanvasDoc(), run: () => cvRedo() },
+  { id: 'go-compose', title: 'Go to Compose', keywords: 'layers editor photoshop composite retouch',
+    shortcut: 'E', category: 'navigate', when: () => !inCompose(),
+    run: () => setSurface('compose') },
+  { id: 'edit-in-compose', title: 'Edit in Compose', keywords: 'layers smart object photoshop composite',
+    shortcut: '⌘⇧E', category: 'develop', when: () => inDev() && hasDoc(),
+    run: () => editInCompose().catch(() => {}) },
+  { id: 'compose-save', title: 'Save Compose Document', keywords: 'compose persist project', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(),
+    run: () => saveDocument().catch(() => {}) },
+  { id: 'compose-close', title: 'Close Compose Document', keywords: 'compose recent documents', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(),
+    run: () => closeDocument().catch(() => {}) },
+  { id: 'compose-undo', title: 'Undo (Compose)', keywords: 'compose history back', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coUndo() },
+  { id: 'compose-redo', title: 'Redo (Compose)', keywords: 'compose history forward', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coRedo() },
+  { id: 'compose-flatten', title: 'Flatten Image', keywords: 'compose merge all layers', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coOp('flatten') },
+  { id: 'compose-stamp', title: 'Stamp Visible', keywords: 'compose merge copy layer', noSheet: true,
+    category: 'workflow', when: () => inCompose() && hasComposeDoc(), run: () => coOp('stampVisible') },
   { id: 'nav-photos', title: 'Previous / Next Photo', shortcut: '← →', category: 'navigate', noPalette: true },
   { id: 'thumb-up', title: 'Bigger Thumbnails', keywords: 'zoom grid size', shortcut: '+',
     category: 'navigate', run: () => bumpThumb(1) },

@@ -15,7 +15,8 @@
 //   [ 4] highlights  [ 5] shadows     [ 6] whites      [ 7] blacks
 //   [ 8] vibrance    [ 9] saturation  [10] hasCurve    [11] inputIsLinear
 //   [12] clipOverlay [13] mixOn (any colormix/vibsat nonzero; the worker
-//        zeroes vibsat, colormix and mixOn while B&W is on) [14..15] pad
+//        zeroes vibsat, colormix and mixOn while B&W is on) [14..15] frame
+//        offset x, y (Compose; see [75])
 //   [16+4b .. 18+4b] h, s, l of band b — red orange yellow green aqua blue
 //                    purple magenta — [19+4b] pad
 //   [48] clarity     [49] texture     [50] dehaze      [51] resScale
@@ -29,13 +30,17 @@
 //   [68] grading highlights h     [69] grading highlights s
 //   [70] grading blending 0..100  [71] grading balance -100..100
 //   [72] gradingOn (any zone s nonzero) [73] bwOn
-//   [74] healCount (0..32, healU below) [75] pad
+//   [74] healCount (0..32, healU below) [75] frame scale x — with [95]
+//        (scale y) and [14..15], the output's place in a larger frame:
+//        frame uv = offset + uv·scale. Compose renders adjustment layers
+//        over a view of the document, and the vignette follows the
+//        document. 0 = the output is the frame
 //   [76..83] B&W mix weight per band, red..magenta (-100..100)
 //   [84] lens distortion (-100..100)  [85] caRed  [86] caBlue (-100..100)
 //   [87] defringe (0..100)  [88] lensOn (any of 84..87 nonzero)
 //   [89] persp v (-100..100)  [90] persp h  [91] perspOn
 //   [92] toneMap 0=clamp 1=AgX  [93] baseline EV (AgX only)
-//   [94] look saturation (AgX only, 1 = neutral)  [95] pad
+//   [94] look saturation (AgX only, 1 = neutral)  [95] frame scale y
 //   [96] lensfunOn  [97..100] distortion a1..a4: inverse map from output to
 //        source radius r_d = r·(1 + a1 r + a2 r² + a3 r³ + a4 r⁴), r = 1 at
 //        the source half-diagonal  [101..103] TCA red v, c, b and
@@ -102,7 +107,7 @@ struct Params {
   a: vec4f,               // ev, temp, tint, contrast
   b: vec4f,               // highlights, shadows, whites, blacks
   c: vec4f,               // vibrance, saturation, hasCurve, inputIsLinear
-  d: vec4f,               // clipOverlay, mixOn, pad, pad
+  d: vec4f,               // clipOverlay, mixOn, frame offset x, y
   bands: array<vec4f, 8>, // h, s, l, pad per band
   e: vec4f,               // clarity, texture, dehaze, resScale
   f: vec4f,               // vignette amount, midpoint, roundness, feather
@@ -110,12 +115,12 @@ struct Params {
   h: vec4f,               // crop w, crop h, fitScale, flipH
   i: vec4f,               // grading: shadows h, shadows s, midtones h, midtones s
   j: vec4f,               // grading: highlights h, highlights s, blending, balance
-  k: vec4f,               // gradingOn, bwOn, healCount, pad
+  k: vec4f,               // gradingOn, bwOn, healCount, frame scale x
   bw0: vec4f,             // B&W mix: red, orange, yellow, green
   bw1: vec4f,             // B&W mix: aqua, blue, purple, magenta
   l: vec4f,               // lens: distortion, caRed, caBlue, defringe
   q: vec4f,               // lensOn, persp v, persp h, perspOn
-  p2: vec4f,              // toneMap, baseline EV, look saturation, pad
+  p2: vec4f,              // toneMap, baseline EV, look saturation, frame scale y
   lf0: vec4f,             // lensfunOn, a1, a2, a3
   lf1: vec4f,             // a4, TCA red v, c, b
   lf2: vec4f,             // TCA blue v, c, b, vignetting k1
@@ -700,8 +705,12 @@ fn fs(in: VOut) -> @location(0) vec4f {
   // (uv-circle = frame-shaped ellipse); 100 is physically circular. r is
   // normalized so the far corner sits at 1; amount ±100 → ±1.2 stops there.
   if (P.f.x != 0.0) {
-    let ax = mix(1.0, (cwh.x * dim.x) / (cwh.y * dim.y), clamp(P.f.z / 100.0, 0.0, 1.0));
-    let dv = vec2f((in.uv.x - 0.5) * ax, in.uv.y - 0.5);
+    let framed = P.k.w > 0.0;
+    let frs = select(vec2f(1.0), vec2f(P.k.w, P.p2.w), framed);
+    let fuv2 = select(in.uv, vec2f(P.d.z, P.d.w) + in.uv * frs, framed);
+    let fwh = cwh * dim / frs;
+    let ax = mix(1.0, fwh.x / fwh.y, clamp(P.f.z / 100.0, 0.0, 1.0));
+    let dv = vec2f((fuv2.x - 0.5) * ax, fuv2.y - 0.5);
     let r = length(dv) / length(vec2f(0.5 * ax, 0.5));
     let inner = P.f.y / 100.0 * 0.7 + 0.15;
     let vt = smoothstep(inner, inner + 0.05 + 1.1 * P.f.w / 100.0, r);

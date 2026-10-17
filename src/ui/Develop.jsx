@@ -18,7 +18,7 @@ import { geometryOf } from '../engine/geometry.js'
 import { buildCurveLut } from '../engine/curve.js'
 import { setView, exportPhoto, autoAdjust, samplePoint } from '../state/renderClient.js'
 import { openOverlay } from '../state/commands.js'
-import { openDevelopedInCanvas } from '../state/canvasClient.js'
+import { editInCompose } from '../compose/ui/smartEdit.js'
 import VersionsSection from './VersionsSection.jsx'
 import { useLens } from '../state/lensStore.js'
 import { useDenoise, ensureDenoised } from '../state/denoiseClient.js'
@@ -735,16 +735,46 @@ export default function Develop({ canvasRef }) {
                 Quick export JPEG
               </button>
               <button
-                className="btn-quick edit-in-canvas"
-                onClick={() => openDevelopedInCanvas().catch((err) => console.error('[canvas]', err))}
+                className="btn-quick edit-in-compose"
+                data-tip="Open as a smart object in Compose" data-tip-key="⌘⇧E"
+                onClick={() => editInCompose().catch((err) => console.error('[compose]', err))}
                 disabled={!photo || !doc}
               >
-                Edit in Canvas
+                Edit in Compose
               </button>
             </section>
           </>
         )}
       </aside>
     </div>
+  )
+}
+
+// Develop's adjustment panels without the photo-specific ones (profile, lens,
+// heal, versions): Compose shows these for a Develop adjustment layer, with
+// the edit store bound to the layer (editStore.bindTarget).
+export function DevelopAdjustPanels({ doc }) {
+  const bwOn = doc ? !!getParam(doc, 'bw', 'on') : false
+  return (
+    <>
+      <PanelSection id="co-tone" resets={['exposure', 'tone']} title="TONE"><Rows rows={TONE} doc={doc} /></PanelSection>
+      <PanelSection id="co-wb" resets={['wb']} title="WB"><Rows rows={WB} doc={doc} /></PanelSection>
+      <PanelSection id="co-curve" resets={['curve']} title="CURVE"><CurveEditor /></PanelSection>
+      <PanelSection id="co-color" resets={['vibsat']} title="COLOR"><Rows rows={COLOR} doc={doc} /></PanelSection>
+      <PanelSection
+        id="co-bw" resets={['bw']} title="B&W"
+        action={doc && (
+          <button
+            type="button" className={`bw-chip${bwOn ? ' is-on' : ''}`} aria-pressed={bwOn}
+            data-tip="Toggle black & white"
+            onClick={() => commitParam('bw', 'on', bwOn ? 0 : 1)}
+          >{bwOn ? 'ON' : 'OFF'}</button>
+        )}
+      ><BwRows doc={doc} /></PanelSection>
+      <PanelSection id="co-mixer" resets={['colormix']} title="MIXER"><Mixer /></PanelSection>
+      <PanelSection id="co-grading" resets={['grading']} title="GRADING"><GradingWheels /></PanelSection>
+      <PanelSection id="co-effects" resets={['localcontrast', 'vignette', 'grain']} title="EFFECTS"><Rows rows={EFFECTS} doc={doc} /></PanelSection>
+      <PanelSection id="co-detail" resets={['detail']} title="DETAIL"><Rows rows={DETAIL} doc={doc} /></PanelSection>
+    </>
   )
 }
