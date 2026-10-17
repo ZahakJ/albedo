@@ -334,6 +334,37 @@ await page.keyboard.press('Control+z')
 await page.waitForTimeout(300)
 check('UI: ⌘J duplicates and ⌘Z undoes it', dup === nBefore + 1 && (await doc()).nodes.length === nBefore)
 
+// ── smart object: Develop → Compose → Develop → back, no file written ─────
+await page.setInputFiles('input[type=file]', `${root}test/fixtures/sample.dng`)
+await page.waitForFunction(() => window.__albedo.catalog().photos.length > 0, null, { timeout: 60000 })
+const photoId = await C(() => window.__albedo.catalog().photos[0].id)
+// in Compose, G and D are tools: the Develop tab opens the selected photo
+await page.click('.surface-seg button:has-text("Develop")')
+await page.waitForFunction(() => window.__albedo.edit().doc, null, { timeout: 60000 })
+await page.waitForTimeout(1500)
+await page.keyboard.press('Control+Shift+E')
+await page.waitForFunction(() => window.__albedo.compose.state().doc?.nodes[0]?.kind === 'smart', null, { timeout: 30000 })
+await page.waitForTimeout(1500)
+d = await doc()
+const so = d.nodes[0]
+const sp0 = await px(d.width / 2, d.height / 2)
+await op('select', { nodeId: so.id })
+await page.click('.co-smart-edit')
+await page.waitForFunction(() => window.__albedo.view().surface === 'develop' && window.__albedo.compose.state().editingSmart, null, { timeout: 15000 })
+await page.waitForTimeout(800)
+await page.keyboard.press('v') // black and white, in the smart object's own edit
+await page.waitForTimeout(800)
+await page.click('.smart-bar .btn-primary')
+await page.waitForFunction(() => window.__albedo.view().surface === 'compose', null, { timeout: 15000 })
+await page.waitForTimeout(1500)
+const sp1 = await px(d.width / 2, d.height / 2)
+const grey = Math.abs(sp1[0] - sp1[1]) < 0.01 && Math.abs(sp1[1] - sp1[2]) < 0.01
+const colour = Math.abs(sp0[0] - sp0[2]) > 0.02 || Math.abs(sp0[1] - sp0[2]) > 0.02
+const catalogEdit = await C((id) => window.__albedo.loadDoc(id).then((x) => x?.modules?.bw?.on ?? 0), photoId)
+const layerEdit = (await doc()).nodes[0].smart.edit?.modules?.bw?.on
+check('smart object: edited in Develop, back in Compose, re-developed', colour && grey && layerEdit === 1, `${fmt(sp0)} → ${fmt(sp1)}`)
+check("smart object: the catalog's own edit is untouched", catalogEdit === 0)
+
 await page.screenshot({ path: `${shots}/compose-ui.png` })
 check('no page errors', errors.length === 0, errors.slice(0, 5).join(' | '))
 await browser.close()
