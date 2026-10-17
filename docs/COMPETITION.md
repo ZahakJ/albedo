@@ -76,25 +76,94 @@ Survey of photo developers and editors as of October 2026. Lightroom Classic is 
   - Its raw development uses the LibRaw basics only ([docs](https://docs.digikam.org/en/setup_application/editor_settings.html)).
   - Its sidebars are cluttered ([bug](https://bugs.kde.org/show_bug.cgi?id=518072)).
 
-## GIMP 3.2, PhotoGIMP, Krita, Photopea, Graphite
+## Photoshop and the layered editors
 
-- **GIMP 3.2** ([notes](https://gimp.org/release-notes/gimp-3.2.html)).
-  - Filters can be re-edited non-destructively, but crops and transforms are destructive and there are no adjustment layers.
-  - Raw goes out to darktable, RawTherapee or ART plug-ins.
-  - Its UX is a standing complaint ([forum](https://discuss.pixls.us/t/gimp-is-falling-behind-where-is-the-ux/48708)).
-- **PhotoGIMP** remaps GIMP to Photoshop's shortcuts and layout. It adds no features ([repo](https://github.com/Diolinux/PhotoGIMP)).
-- **Krita 5.3/6.0** handles 16- and 32-bit float images. Generative fill comes through a ComfyUI plug-in that needs 6 GB of VRAM ([krita-ai-diffusion](https://github.com/Acly/krita-ai-diffusion)), and stacks of non-destructive filters are slow.
-- **Photopea** is a proprietary web editor that runs on ads. Its raw controls are limited to white balance, exposure and contrast ([Digitec](https://www.digitec.ch/en/page/photopea-open-and-edit-photoshop-files-in-the-browser-16227)), and its AI is credit-metered.
-- **Graphite** is a node-based editor in alpha. Its raster tools are "limited, experimental" ([features](https://graphite.art/features)).
+### What retouchers and compositors do every day
 
-## Open-source Lightroom clones of 2025–2026
+- **Portrait retouching.** Pros dodge and burn on pairs of Curves layers with black masks. They paint at 1–10% flow with a pen, sometimes with a Luminosity-mode layer to keep colour steady. They heal and clone onto empty layers with "Current & Below" sampling, and grade last ([Dunbar](https://dennisdunbar.substack.com/p/retouching-secrets-of-the-pros-portrait), [CreativeLive](http://www.creativelive.com/blog/dodging-burning-images-photo-editing)).
+- **Frequency separation.** Retouchers call it "the most abused" technique, yet it stays a standard step: a blurred Low layer and a High layer in Linear Light ([Fstoppers](https://fstoppers.com/photoshop/common-frequency-separation-mistakes-which-will-ruin-your-retouching-results-30913)).
+- **Compositing.**
+  - A Curves layer clipped to the subject, matched to the background with eyedroppers sampling all layers ([PiXimperfect via Kelby](https://scottkelby.com/guest-blog-photoshop-and-lightroom-instructor-unmesh-dinda-of-piximperfect/)).
+  - Select Subject and hair refinement, then masks.
+- **Landscape.**
+  - Exposure blending and luminosity masks.
+  - Blend If, preferred because it stays live as the layers below change and keeps files small. Pixel luminosity masks go stale after edits and bloat the file ([Stephen Bay](https://stephenbayphotography.com/blog/blend-if-vs-luminosity-masks/), [Greg Benz](https://gregbenzphotography.com/exposure-blending-luminosity-masks)).
 
-| project | stack | strengths | gaps |
-|---|---|---|---|
-| [RapidRAW](https://github.com/cybertimon/rapidraw) | Rust, wgpu, React, Tauri; AGPL | sidecars, culling, SAM 2 / U²-Net / depth masks, LaMa inpaint | "not yet as polished", 16 GB RAM advised |
-| [LightCraft](https://github.com/storytold/lightcraft) | Rust, MIT/Apache | append-only catalog, f32 pipeline, CLI and MCP | heuristic masks, self-rated ~61% of Lightroom |
-| [Rembrandt](https://github.com/thesnarkitecht/rembrandt) | JS WebGPU, LibRaw wasm, Tauri; GPL | XMP sidecars, Lightroom catalog import, AI masks | young; doubts on longevity ([HN](https://news.ycombinator.com/item?id=50012199)) |
-| [redlamp](https://github.com/pdcgomes/redlamp) | Swift, Metal; MPL | native, AI masks | macOS only, no catalog |
+### What they hate about Photoshop
+
+- **Price and credits.**
+  - Creative Cloud Pro has cost $69.99 a month since June 2025 ([The Register](https://www.theregister.com/2025/05/20/adobe_price_hikes/)).
+  - Generative Fill costs 1 to 40 credits a generation, depending on the model ([Glyn Dewis](https://glyndewis.com/blog/adobe-credit-crunch)).
+  - The Photography plan's 250 credits do not roll over ([thread](https://community.adobe.com/t5/photoshop-ecosystem-discussions/p-you-don-t-have-enough-credits/m-p/15382048)). One user lost all 250 to a single partner-model generation that an in-app tutorial offered, with no cost warning ([thread](https://community.adobe.com/questions-712/has-anyone-else-have-their-generative-credits-stolen-1633378)).
+- **Generative Fill output.**
+  - It was capped at 1024 × 1024 per generation in 2025 ([Adobe](https://community.adobe.com/t5/photoshop-ecosystem-discussions/what-is-the-max-resolution-for-generative-fill-in-photoshop-in-2025/m-p/15417958)).
+  - The 2026 Fill & Expand model reaches 2048², but large selections are still stretched and soft ([PhotoshopCAFE](https://photoshopcafe.com/photoshop-firefly-fill-and-expand-model-new-features-and-comparision/)).
+  - The "violates user guidelines" false-positive thread runs to about 1,400 replies ([thread](https://community.adobe.com/t5/photoshop-beta-bugs/p-generated-images-violate-user-guidelines/idi-p/13811808/page/40)).
+- **Stability.**
+  - "Photoshop 2026 is the worst version so far": crashes, wiped actions, near-daily crashes on an RTX 5090 machine, and users rolling back to 2025 ([thread](https://community.adobe.com/questions-712/photoshop-2026-is-the-worst-version-so-far-1561263)).
+  - Large layered documents slow down over a session ([thread](https://community.adobe.com/questions-712/question-for-the-photoshop-community-handling-large-psd-files-1182514)).
+- **File size.** An 11-layer 3000 × 1000 PSD saved at about 1 GB ([thread](https://community.adobe.com/questions-712/psd-size-1095917)).
+- **Arabic and other right-to-left type.**
+  - It needs the Middle Eastern composer switched on and a restart ([noqta](https://noqta.tn/en/blog/ecrire-arabe-photoshop-illustrator)).
+  - In February 2026 a user reported Arabic coming out reversed and unreadable ([thread](https://community.adobe.com/questions-712/i-have-a-problem-with-unified-text-engine-1551690)).
+
+### The other layered editors
+
+- **GIMP 3.2** ([notes](https://gimp.org/release-notes/gimp-3.2.html), [3.2](http://www.gimp.org/news/2026/03/14/gimp-3-2-released/)).
+  - Has: non-destructive filters attached to a layer, link layers and vector layers.
+  - Lacks: adjustment layers and a layer-effects system; crops and transforms are destructive.
+  - Raw goes out to plug-ins, and its UX is a standing complaint ([forum](https://discuss.pixls.us/t/gimp-is-falling-behind-where-is-the-ux/48708)).
+  - **PhotoGIMP** remaps it to Photoshop's keys. Its 3.0 configuration does not load in GIMP 3.2 ([#200](https://github.com/Diolinux/PhotoGIMP/issues/200)).
+- **Krita 5.3 / 6.0** ([Linuxiac](https://linuxiac.com/krita-5-3-and-6-0-released-with-new-text-engine-and-wayland-hdr-support/)).
+  - Has: a new text engine, 16/32-bit float and faster Liquify.
+  - Lacks: a healing brush. PSD exchange has limits, and AI needs a ComfyUI plug-in with 6 GB of VRAM ([krita-ai-diffusion](https://github.com/Acly/krita-ai-diffusion)).
+- **Photopea** ([5.6](https://blog.photopea.com/photopea-5-6-advanced-color-depth.html)).
+  - Has: strong PSD fidelity in a browser, and 16/32-bit since 2024.
+  - Drawbacks: it is closed source and runs on ads. Large files hit browser memory limits ("Need 3043MB", [guide](https://www.superchargebrowser.com/library/fix-photopea-not-enough-ram-chrome/)).
+- **Affinity** (free since October 2025, [80.lv](https://80.lv/articles/affinity-returns-as-free-all-in-one-design-suite)).
+  - Requires: a Canva account.
+  - Paywalled: Generative Fill, Select Subject and Super Resolution need Canva Premium ([TutKit](https://www.tutkit.com/en/comparison/image-editing/affinity)).
+  - PSD: smart objects are rasterised on import by default ([help](https://affinity.help/photo2/en-US.lproj/pages/GetStarted/importAdobe.html)).
+- **Pixelmator Pro** is Apple-only, and since January 2026 part of Apple's Creator Studio subscription ([Wikipedia](https://en.wikipedia.org/wiki/Pixelmator_Pro)).
+- **Graphite** is vector-first, with node compositing. Its raster tools are "still experimental" and it does not import PSD ([LWN](https://lwn.net/Articles/1051242)).
+
+## Open-source Adobe clones of 2025–2026
+
+Facts as of 16 October 2026, from the projects' pages, issue trackers and Hacker News. The issues quoted are the projects' own, most-commented first.
+
+| project | kind, stack | licence | where it stands | most-reported problems |
+|---|---|---|---|---|
+| [RapidRAW](https://github.com/CyberTimon/RapidRAW) | Lightroom-like; Rust, wgpu, Tauri | AGPL-3.0 | v1.6.5, 10.5k stars | memory: "16GB or more is highly recommended" (README); 45 browsed files used 5.5–12 GB and 22 Fuji files 15 GB ([#521](https://github.com/CyberTimon/RapidRAW/issues/521)); launch failures after updates ([#1490](https://github.com/CyberTimon/RapidRAW/issues/1490)); edits kept in its own `.rrdata`, not XMP ([#597](https://github.com/CyberTimon/RapidRAW/issues/597)); TIFF exports without EXIF ([#1750](https://github.com/CyberTimon/RapidRAW/issues/1750)) |
+| [LightCraft](https://github.com/storytold/lightcraft) | Lightroom-like; Rust | Apache-2.0 (README: MIT or Apache) | v0.5, 13.2k stars | colour against Lightroom: median ΔL* +3.2 over 1,917 files ([#523](https://github.com/storytold/lightcraft/issues/523)); formats that open as the embedded preview ([#556](https://github.com/storytold/lightcraft/issues/556)); a 38.5k-photo catalog import that stalls ([#832](https://github.com/storytold/lightcraft/issues/832)) |
+| [PhotoCraft](https://github.com/storytold/photocraft) | Photoshop-like; Rust, wgpu | Apache-2.0 | 0.8.2, 64.9k stars, 2,462 open issues | PSB/PSD round trips that Photoshop then refuses ([#2717](https://github.com/storytold/photocraft/issues/2717)); 50–70 ms cursor lag ([#1343](https://github.com/storytold/photocraft/issues/1343)); no tablet pressure ([#759](https://github.com/storytold/photocraft/issues/759)); clone stamp and layer-effect toggles that do nothing ([#1658](https://github.com/storytold/photocraft/issues/1658), [#2083](https://github.com/storytold/photocraft/issues/2083)); GPU device-lost launches ([#1461](https://github.com/storytold/photocraft/issues/1461)) |
+| [Rembrandt](https://github.com/thesnarkitecht/rembrandt) | Lightroom-like; JS WebGPU, LibRaw, Tauri | GPL-3.0 | 146 stars | unsigned builds; questions about longevity ([HN](https://news.ycombinator.com/item?id=50012199)) |
+| [redlamp](https://github.com/pdcgomes/redlamp) | Lightroom-like; Swift, Metal | MPL-2.0 | pre-alpha | no Library yet; macOS only |
+| [Patchy](https://github.com/SethRobinson/Patchy) | Photoshop-like, in the browser | MIT | 599 stars | handled adjustment layers and smart objects in a third-party PSD test |
+| [Graphite](https://github.com/GraphiteEditor/Graphite) | node-based 2D; Rust, WASM | Apache-2.0 | no numbered releases | idle CPU use ([#3686](https://github.com/GraphiteEditor/Graphite/issues/3686)); Vulkan and out-of-memory panics ([#3546](https://github.com/GraphiteEditor/Graphite/issues/3546), [#3611](https://github.com/GraphiteEditor/Graphite/issues/3611)) |
+
+Commentary on the wave: "Attack of the Vibe Coded Photoshop Clones" ([HN](https://news.ycombinator.com/item?id=50052156)) and [andreklein.net's PSD tests](https://news.ycombinator.com/item?id=49983780).
+
+## Their problems, our answers
+
+Each row is a complaint that recurs across the projects above, and what albedo has to show for it. A row counts only when a test or a measurement backs it; where albedo has no proof yet, the row says so.
+
+| complaint | albedo | proof |
+|---|---|---|
+| memory grows until the app dies (RapidRAW #521: 15 GB for 22 files) | thumbnails and previews are files in OPFS, not memory; only the open photo is decoded | [scale.mjs](../test/scale.mjs): a 10,000-photo catalog, grid scrolled end to end twice, whole browser peaks at 1.5 GB ([BENCHMARKS](BENCHMARKS.md#memory)) |
+| one heavy document exhausts memory (PhotoCraft #1015, #3360) | Compose draws at screen resolution; layers are GPU textures sized to their content; history is capped by a VRAM budget | [compose-bench.mjs](../test/compose-bench.mjs): 50 layers on a 24 MP RAW hold 3.2 GB of VRAM, history included; the browser's resident memory, summed over its processes, is 3.3 GB ([BENCHMARKS](BENCHMARKS.md#compose)) |
+| slow previews and imports (RapidRAW #456, #620; LightCraft #832) | GPU pipeline; LibRaw in WebAssembly | open a 45 MP RAW in 1.2 s; import 63 photos/s ([BENCHMARKS](BENCHMARKS.md)) |
+| input lag (PhotoCraft #1343 cursor lag, #2138 straight brush segments) | slider changes coalesce to one frame; brushes take every coalesced pointer event and pressure | Develop: 2.4 ms a frame; Compose, 50 layers on 24 MP: a brush stroke 6.7 ms a frame, a Develop adjustment slider 4.6 ms ([BENCHMARKS](BENCHMARKS.md#compose)) |
+| no tablet pressure (PhotoCraft #759) | pointer events: pressure drives size, opacity or flow | brush options; `compose.e2e.mjs` strokes |
+| colour unlike Lightroom (LightCraft #523) | Adobe's own DCP profiles import and apply as in the DNG SDK | DCP tests (`test/unit/dcp.test.mjs`); no Lightroom on the reference machine, so no ΔE table yet |
+| "supported" formats that open as the embedded JPEG (LightCraft #556, #769) | every RAW is decoded by LibRaw at full sensor resolution | `raw.e2e.mjs`, `rawthumb.e2e.mjs` |
+| XMP that doesn't travel (RapidRAW #597) | Lightroom XMP read and write, `.xmp` presets in and out | `test/unit/xmp*.test.mjs` |
+| PSD files that break on the way back (PhotoCraft #2717, #3360, #4758) | PSD written to the specification, 8/16/32-bit, with a merged image | `compose.e2e.mjs`: albedo → PSD → albedo keeps names, groups, modes, opacity, masks, depth and pixels; Photoshop itself is not on the reference machine |
+| lost work on a crash (RapidRAW #362, #1229) | every write is atomic; Develop saves 500 ms after an edit, Compose 2.5 s | `durability.e2e.mjs`: crash the tab after edits in Develop and Compose, reopen, nothing lost |
+| exports without metadata (RapidRAW #1750) | EXIF copied into JPEG, written into TIFF and DNG | `meta.e2e.mjs`, `export.e2e.mjs` |
+| GPU or driver failure means a blank window (PhotoCraft #1461; Graphite #3546) | WebGPU, else WebGL2, for Library and Develop | `parity.e2e.mjs` renders both backends; Compose needs WebGPU and says so instead of failing silently |
+| features in the UI that do nothing (PhotoCraft #1658, #2083) | every Compose tool is exercised by an end-to-end test; what isn't built is listed in [RESOURCE-LIMITS](RESOURCE-LIMITS.md), not shown | `compose.e2e.mjs` (45 checks, on a real GPU) |
+| install friction, unsigned binaries (RapidRAW, Rembrandt) | a web page: nothing to install, an installable PWA that works offline | [the app](https://zahakj.github.io/albedo/app/) |
+| unclear licence or provenance (LightCraft #1339, PhotoCraft #341) | AGPL-3.0 in the repository, the README and package.json; bundled code and models listed with their licences | [README](../README.md#license), [MODELS](MODELS.md) |
 
 ## What nobody does well
 
@@ -104,6 +173,9 @@ Survey of photo developers and editors as of October 2026. Lightroom Classic is 
 4. **Portable edits.** Capture One edits stay trapped, and darktable reads only 10 Lightroom steps.
 5. **A good first render.** darktable starts flat, and Lightroom's adaptive profiles hide their decisions.
 6. **Zero install.** No open developer runs in a browser with a real raw pipeline. Photopea is closed and runs on ads.
+7. **RAW inside the composite.** Photoshop keeps a RAW smart object, but editing it opens Camera Raw in a dialog; GIMP and Krita hand RAW to other programs. Nobody lets the same developer drive both.
+8. **Type for everyone's script.** Photoshop needs a composer switch for Arabic; Affinity doesn't document right-to-left; Canvas-based web editors can't control OpenType features.
+9. **Local fill without credits or a content filter.** Adobe meters it, Affinity puts it behind Canva Premium, Krita needs ComfyUI.
 
 ## Targets
 
@@ -128,4 +200,20 @@ Each category is judged against Lightroom Classic on the same machine. A target 
 
 Measurements: [BENCHMARKS.md](BENCHMARKS.md).
 
-Out of scope: print, book, map, tethering, generative fill, and Photoshop-style compositing beyond the Canvas surface.
+## Compose targets
+
+Judged against Photoshop 27 on the same tasks. Measured in [BENCHMARKS.md](BENCHMARKS.md#compose).
+
+| category | Photoshop | target | measured |
+|---|---|---|---|
+| a 50-layer 24 MP document | slows as layers and smart objects pile up | display rate (< 16.7 ms GPU a frame) at fit and at 100%, still and panning | pans and zooms present the cached composite; a full redraw is 6.7 ms at fit, 17.9 ms at 100% with the panning margin (2.25 × the screen); panning at 100% has a 95th percentile of 7.0 ms |
+| painting in the middle of the stack | | < 8 ms a frame | 6.7 ms median, 9.3 ms 95th percentile at fit; 6.4 ms at 100% |
+| a Develop adjustment slider | Camera Raw filter re-renders on OK | < 16.7 ms a frame | 4.6 ms |
+| RAW into a layered document | Open as Smart Object, Camera Raw in a dialog | from Develop with no decode, Develop's own panels to edit it again | 21 ms from the key press, no decode; round trip tested |
+| memory | 1 GB PSDs, slowdowns | the 50-layer document under 4 GB of VRAM | 3.2 GB, history included |
+| blend modes | 27 | the same 27, matching the formulas | 26 of 26 tested within 2/255, plus Dissolve |
+| PSD | native | 8/16/32-bit layers, groups, masks, modes, clipping and Blend If both ways | round trip tested |
+| right-to-left type | composer switch and restart | correct by default | HarfBuzz: Arabic joining, lam-alef, bidi, fallback (unit tests) |
+| fill | metered, cloud, content filter | local, unmetered | MI-GAN, 0.1–0.3 s; prompted generation: see [RESOURCE-LIMITS](RESOURCE-LIMITS.md) |
+
+Out of scope: print, book, map, tethering, prompted generative fill (see [RESOURCE-LIMITS](RESOURCE-LIMITS.md)), CMYK and vector illustration.

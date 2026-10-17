@@ -1,29 +1,29 @@
 # Architecture
 
-albedo is a single HTML document with no server component. Vite builds it to static files; everything that touches pixels, files or the database runs in dedicated workers, and the main thread only runs React and forwards messages.
+albedo is a single HTML document with no server component. Vite builds it to static files; everything that touches pixels, files or the database runs in dedicated workers, and the main thread only runs React and forwards messages. Compose, the layered editor, runs inside the render worker so that it shares Develop's GPU device.
 
 ```
                          main thread (React UI, stores)
-          ┌──────────────┬──────────────┬──────────────┬──────────────┐
-          │              │              │              │              │
-   decode.worker   render.worker  catalog.worker   ai.worker     canvas.worker
-   libraw-wasm     WebGPU/WebGL2  sqlite-wasm     onnxruntime-web 2D compositor
-   (own nested     OffscreenCanvas OPFS files     WebGPU | wasm   OffscreenCanvas
-    wasm worker)         ▲                              │
-                         └────── MessageChannel ────────┘  AI denoise tiles
+          ┌──────────────┬──────────────┬──────────────┐
+          │              │              │              │
+   decode.worker   render.worker  catalog.worker   ai.worker
+   libraw-wasm     WebGPU/WebGL2  sqlite-wasm     onnxruntime-web
+   (own nested     Develop +      OPFS files      WebGPU | wasm
+    wasm worker)   Compose             ▲                │
+                         ▲             │                │
+                         └──── MessageChannel ──────────┘  AI denoise tiles
 ```
 
 | worker | owns | file |
 |---|---|---|
 | decode | LibRaw. Turns RAW bytes into a mosaic or RGB payload | `src/workers/decode.worker.js` |
-| render | the GPU device, the Develop canvas, histogram, auto adjustments, export rendering | `src/workers/render.worker.js` |
+| render | the GPU device, the Develop canvas, histogram, auto adjustments, export rendering; Compose's documents, compositor and tools | `src/workers/render.worker.js`, `src/compose/` |
 | catalog | the SQLite connection and all OPFS file I/O | `src/workers/catalog.worker.js` |
 | ai | the local models (masks, object selection, removal, denoise), loaded on first use | `src/workers/ai.worker.js` |
-| canvas | the layered raster documents of the Canvas surface | `src/workers/canvas.worker.js` |
 
 ## Messages
 
-`src/workers/protocol.js` is the contract for decode, render, catalog and AI; `src/workers/canvasProtocol.js` is the separate contract for the canvas worker. Every request is `{ id, type, ...payload }` and every reply `{ re: id, ok, ...payload }`. Pixel buffers, file bytes and blobs always cross as transferables.
+`src/workers/protocol.js` is the contract for decode, render, catalog and AI; `src/compose/protocol.js` is Compose's, on the same worker (message types `co…`, string request ids). Every request is `{ id, type, ...payload }` and every reply `{ re: id, ok, ...payload }`. Pixel buffers, file bytes and blobs always cross as transferables.
 
 Each worker has a thin client on the main thread (`src/state/*Client.js`, `catalogStore.js`) that turns requests into promises. `renderClient` coalesces `PARAMS` sends to one per animation frame, so a slider drag produces at most one render per frame regardless of pointer rate.
 
@@ -43,7 +43,7 @@ Stores are plain modules with `useSyncExternalStore` hooks; there is no state li
 
 | store | holds |
 |---|---|
-| `viewStore` | surface (library, develop, canvas), library mode (grid, compare, survey, cull), selection, zoom, thumbnail size, theme |
+| `viewStore` | surface (library, develop, compose), library mode (grid, compare, survey, cull), selection, zoom, thumbnail size, theme |
 | `catalogStore` | query results, sidebar data, debounced document saves, catalog worker proxy |
 | `editStore` | the open photo, its edit document, the undo history (one entry per gesture), snapshots |
 | `versionStore` | the versions of the open photo |
@@ -75,7 +75,10 @@ src/
   App.jsx, main.jsx      shell, topbar, global keys, drop handling
   ui/                    Library, Grid, Cull, Compare, Survey, Develop and its panels,
                          overlays (crop, mask, heal), dialogs, palette, cheat sheet
-  edit/                  the Canvas surface: layers panel, tool options, history, recent docs
+  compose/               Compose: engine.js (document, history, frames, OPFS), model.js,
+                         mesh.js (transforms), gpu/ (compositor and WGSL), select.js,
+                         paint.js, patch.js, retouch.js, liquify.js, styles.js, text.js and
+                         type/ (HarfBuzz layout), files.js and files/ (PSD, TIFF), ui/
   state/                 stores and worker clients
   engine/                edit document model, curve LUT, geometry, history labels
   engine/gpu/            device selection, WebGPU and WebGL2 backends
@@ -91,6 +94,14 @@ scripts/fp16.py          half-precision weights for the larger models
 scripts/build-lensfun.mjs the lensfun database as JSON (public/lensfun/)
 deploy/albedo.service    systemd user unit serving dist/
 ```
+
+## Compose
+
+`src/compose/engine.js` owns the open document. The document is an immutable tree of nodes; every change makes new node objects along the path to the root, so a history entry is just the documents before and after, plus GPU copies of any region painted in place. Pixels live in GPU textures referenced from nodes by id, and a texture outlives the node that dropped it for as long as a history entry refers to it. History is capped by a VRAM budget rather than a step count.
+
+Each frame is composited at the resolution of the stage (`src/compose/gpu/compositor.js`): Normal layers draw with fixed-function blending, everything else through a scratch texture and a blend pass. The composite below the layer being edited is cached while a gesture lasts. Tools are plugins on the engine (`src/compose/plugins.js`), each adding operations, messages and, for type and shapes, derived textures.
+
+The render worker lends Compose its device and Develop's machinery (`composeHost` in `render.worker.js`): a smart object is a *session* with the same shape as Develop's open photo, developed to a texture by the same code that draws Develop, and a Develop adjustment layer runs the develop pass over the composite below it. `editStore.bindTarget` points Develop's panels at an adjustment layer or a smart object's edit instead of a catalog photo.
 
 ## Further reading
 

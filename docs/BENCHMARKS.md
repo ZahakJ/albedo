@@ -66,6 +66,34 @@ Seconds, best of two, default settings in each program.
 
 Peak anonymous memory of the whole browser (all processes) while opening and exporting the 61 MP file: 1.0 GB. AI Denoise of the 45 and 61 MP files, including the open: 1.55 GB.
 
+The 10,000-photo catalog below, with the Library grid scrolled from top to bottom twice: the whole browser peaks at 1.5 GB of resident memory (`test/scale.mjs` sampled every 0.5 s).
+
+## Compose
+
+`test/compose-bench.mjs` builds a 50-layer, 16-bit document on `a7iii.arw` (a 24 MP RAW, developed to 5798 × 3873 after its lens correction):
+
+- the RAW as a smart object, plus two more smart objects of it placed small;
+- 10 full-frame pixel layers at 60% in Normal, Multiply, Screen, Overlay and Soft Light;
+- 15 partial pixel layers (800 px), in three groups, each group with a mask;
+- 15 adjustment layers, 5 of them Develop adjustments (one with clarity and texture);
+- 2 type layers (one Arabic) and 2 shapes.
+
+It then times 60 frames of each kind on a 2148 × 1348 px stage, from the start of the frame to the GPU finishing it, without putting the frame on screen. Under the virtual X display the tests use, presenting costs a copy back to the CPU (about 80 ms a frame) that a real display does not make, so it is measured apart and left out. Each time includes about 2 ms of waiting for the GPU to report back, the time an empty queue takes.
+
+| | median | 95th percentile |
+|---|---|---|
+| the whole document redrawn, at fit | 6.7 ms | 10.2 ms |
+| a Develop adjustment's slider (clarity and exposure, mid-stack) | 4.6 ms | 4.9 ms |
+| a brush stroke on a full-frame layer low in the stack, at fit | 6.7 ms | 9.3 ms |
+| the same at 100% | 6.4 ms | 6.8 ms |
+| the whole document redrawn at 100%, with the margin kept for panning (2.25 × the stage) | 17.9 ms | 40.2 ms |
+
+- **Panning and zooming** present the last composite again: at fit, no frame of 60 composited. At 100%, 21 of 60 panning frames composited (the view left the cached margin); the 95th percentile was 7.0 ms. A zoom is shown scaled from the cache and composited sharp once the gesture stops.
+- **Edit in Compose**, from the key press in Develop to the document in Compose: 21 ms. The RAW is not decoded again.
+- **GPU memory** held by the document and its history: 3.17 GB. The browser's resident memory, summed over its processes: 3.3 GB.
+
+These numbers come from a run while another process kept the GPU busy (an image model at about 99% utilisation). In an earlier run that started on an otherwise idle GPU, the medians for the redraw, the slider and 100% were the same within 1 ms.
+
 ## Demosaic quality
 
 PSNR in dB against ground truth. The truth images are 1536 × 1024 crops of the six files above, rendered and downsampled 4× so that they carry no demosaic error of their own, then sampled through a Bayer or an X-Trans pattern. Higher is better.

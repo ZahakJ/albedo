@@ -6,10 +6,10 @@ The AI features run local ONNX models in the AI worker (`src/workers/ai.worker.j
 
 | feature | model | license | source | file | size |
 |---|---|---|---|---|---|
-| Subject and Background masks | [ISNet](https://github.com/xuebinqin/DIS) general use | Apache-2.0 | [rembg release](https://github.com/danielgatis/rembg/releases/tag/v0.0.0) | `isnet-general-use.onnx` | 91 MB |
-| Sky mask | [Sky segmentation](https://github.com/xiongzhu666/Sky-Segmentation-and-Post-processing) (U²-Net) | MIT | [Hugging Face](https://huggingface.co/JianyuanWang/skyseg) | `skyseg.onnx` | 88 MB |
-| Object selection | [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) encoder and decoder | Apache-2.0 | [Hugging Face](https://huggingface.co/Acly/MobileSAM) | `mobile_sam_image_encoder.onnx`, `sam_mask_decoder_multi.onnx` | 28 + 16 MB |
-| Remove | [MI-GAN](https://github.com/Picsart-AI-Research/MI-GAN) | MIT | [Hugging Face](https://huggingface.co/andraniksargsyan/migan) | `migan_pipeline_v2.onnx` | 28 MB |
+| Subject and Background masks; Compose's Select Subject | [ISNet](https://github.com/xuebinqin/DIS) general use | Apache-2.0 | [rembg release](https://github.com/danielgatis/rembg/releases/tag/v0.0.0) | `isnet-general-use.onnx` | 91 MB |
+| Sky mask; Compose's Select Sky | [Sky segmentation](https://github.com/xiongzhu666/Sky-Segmentation-and-Post-processing) (U²-Net) | MIT | [Hugging Face](https://huggingface.co/JianyuanWang/skyseg) | `skyseg.onnx` | 88 MB |
+| Object selection, in Develop and Compose | [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) encoder and decoder | Apache-2.0 | [Hugging Face](https://huggingface.co/Acly/MobileSAM) | `mobile_sam_image_encoder.onnx`, `sam_mask_decoder_multi.onnx` | 28 + 16 MB |
+| Remove; Compose's content-aware fill and spot healing | [MI-GAN](https://github.com/Picsart-AI-Research/MI-GAN) | MIT | [Hugging Face](https://huggingface.co/andraniksargsyan/migan) | `migan_pipeline_v2.onnx` | 28 MB |
 | AI Denoise | [RawNIND](https://github.com/trougnouf/rawnind_jddc) UtNet2, Bayer | GPL-3.0 | [darktable-ai release 5.6.0](https://github.com/darktable-org/darktable-ai/releases/tag/release-5.6.0) | `rawnind_bayer.onnx` | 31 MB |
 
 | file | SHA-256 of the download |

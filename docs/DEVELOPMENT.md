@@ -20,11 +20,13 @@ The development server needs no special headers: sqlite-wasm uses the `opfs-sahp
 
 ```sh
 npm test                  # unit tests, then every end-to-end suite in sequence
-npm run test:unit         # node:test only: XMP, presets, lensfun, DCP, TIFF, DNG
+npm run test:unit         # node:test only: XMP, presets, lensfun, DCP, TIFF, DNG, Compose outlines and type
 node test/<name>.e2e.mjs  # one end-to-end suite
 ```
 
 The end-to-end suites drive headless Chromium through Playwright. Each starts its own Vite server on a fixed port in the 5180–5195 range (`test/server.mjs`), or reuses one already listening there, and stops it on exit. Most suites generate synthetic images into `test/fixtures/` (gitignored); `raw`, `rawthumb`, `grade` and `denoise` also need real RAW samples there: `sample.dng`, `sample.cr2` and `sample.raf`. The AI suites skip when the models are not installed.
+
+`compose.e2e.mjs` needs a GPU-backed browser, so run it as `xvfb-run -a node test/compose.e2e.mjs`; without a display it skips. It checks every blend mode against the reference formulas, adjustments, masks, clipping, groups, selections, the brushes, transforms, type, frequency separation, PSD round trips, saving and liquify, all by readback. `TEST_URL=<url>` points it (and `compose-bench.mjs`) at a static build instead of a dev server, so editing source during a long run doesn't reload the page.
 
 Headless Chromium renders on SwiftShader, which cannot composite a worker-owned WebGPU canvas into a screenshot and runs models on one CPU thread. Suites therefore assert on export readback rather than screenshots wherever colour matters, and run the WebGPU and WebGL2 backends side by side.
 
@@ -39,6 +41,7 @@ Real-GPU numbers need a GPU-backed browser. Headless Chromium falls back to a so
 | `xvfb-run -a node test/bench.mjs <dir> [webgpu,webgl2] [masks]` | decode, open, frame time, export for every RAW in `dir`; `DN=100` adds AI denoise, `DCP=<file>` a camera profile, `SAVE=<dir>` keeps the exports |
 | `xvfb-run -a node test/ai-bench.mjs <photo.jpg> [x y] [outdir]` | subject, sky, object click and Remove timings, cold and warm |
 | `xvfb-run -a node test/scale.mjs [n]` | an n-photo catalog: import rate, Library queries, grid scrolling |
+| `xvfb-run -a node test/compose-bench.mjs [raw]` | a 50-layer Compose document on a 24 MP RAW: frame times at fit and 100%, panning, a Develop adjustment slider, a brush stroke, VRAM and browser memory |
 | `node test/demosaic.mjs <dir of PNGs>` | demosaic PSNR against bilinear and Malvar-He-Cutler on synthetic mosaics |
 
 Results are in [BENCHMARKS.md](BENCHMARKS.md).
@@ -62,7 +65,7 @@ Each visitor's catalog lives in their own browser's OPFS; nothing is stored on t
 
 ## Browser support
 
-- WebGPU where available, WebGL2 otherwise; `?backend=webgl2` forces WebGL2. AI Denoise needs a GPU that reads back by itself, which every hardware WebGPU or WebGL2 device does.
+- WebGPU where available, WebGL2 otherwise; `?backend=webgl2` forces WebGL2. Compose needs WebGPU. AI Denoise needs a GPU that reads back by itself, which every hardware WebGPU or WebGL2 device does.
 - OPFS with sync access handles in workers, `OffscreenCanvas`, module workers and `Float16Array` are required.
 - Export into a folder uses the File System Access API (`showDirectoryPicker`) where available and falls back to downloads.
 - One tab per origin at a time; the catalog's Web Lock refuses a second.

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>albedo</title>
-<meta name="description" content="A RAW photo developer that runs in the browser: GPU develop, local AI masks, removal and denoise, Lightroom XMP in and out. Offline, private, AGPL.">
+<meta name="description" content="A RAW photo developer and layered editor that runs in the browser: GPU develop, layers with RAW smart objects, local AI masks, fill and denoise, Lightroom XMP and PSD in and out. Offline, private, AGPL.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f4f4f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1c1c" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
 <meta property="og:title" content="albedo">
-<meta property="og:description" content="A RAW photo developer that runs in the browser. Local AI, Lightroom XMP in and out, offline.">
+<meta property="og:description" content="A RAW developer and layered editor that runs in the browser. Local AI, Lightroom XMP and PSD in and out, offline.">
 <meta property="og:image" content="https://zahakj.github.io/albedo/media/banner.webp">
 <meta property="og:image:width" content="1640">
 <meta property="og:image:height" content="640">
@@ -39,15 +39,15 @@
 
 <section class="hero" aria-labelledby="hero-title">
   <div class="wrap">
-    <h1 id="hero-title">A RAW developer that runs in your browser.</h1>
-    <p class="lede">Catalog, cull and develop on the GPU. Mask, remove and denoise with AI that never leaves your machine. Take your edits to Lightroom and back.</p>
+    <h1 id="hero-title">Develop and retouch in your browser.</h1>
+    <p class="lede">Catalog, cull and develop RAW on the GPU, then work in layers with the RAW still inside. Mask, fill and denoise with AI that never leaves your machine. Take your work to Lightroom and Photoshop and back.</p>
     <div class="actions">
       <a class="button primary" href="./app/">Open albedo</a>
       <a class="button" href="./manual/">Read the manual</a>
       <a class="button" href="https://github.com/ZahakJ/albedo">Source</a>
     </div>
     <figure class="shot">
-      <img src="media/banner.webp" width="1640" height="640" alt="The Develop view: a RAW photo of a tea plantation, the navigator and presets on the left, the histogram, Profile and Tone panels on the right.">
+      <img src="media/banner.webp" width="1640" height="640" alt="Compose: a RAW photo of rainbow lorikeets as a smart object. A Develop adjustment layer, masked to the background by AI subject selection, dims and desaturates it; type in English and Arabic sits over the photo. Develop's Tone panel and the layer stack are on the right.">
     </figure>
   </div>
 </section>
@@ -55,6 +55,39 @@
 <section aria-labelledby="tour-title">
   <div class="wrap">
     <h2 id="tour-title" class="visually-hidden">Tour</h2>
+
+    <article class="feature">
+      <figure class="shot">
+        <img src="media/compose.webp" width="1600" height="1000" loading="lazy" alt="Compose: a bowl of fruit and vegetables. The lemon, selected with one click by AI object selection and outlined by marching ants, is turned lime green by a masked Hue/Saturation layer; Develop and Curves adjustment layers sit above, the RAW below as a smart object.">
+      </figure>
+      <div>
+        <p class="eyebrow">Compose</p>
+        <h3>Layers, with the RAW still inside</h3>
+        <ul>
+          <li>A photo comes from Develop as a smart object: change its development any time, with no file in between.</li>
+          <li>Every Develop control as an adjustment layer, plus Curves, Levels, Hue/Saturation and the rest, through masks and Blend If.</li>
+          <li>All 27 Photoshop blend modes, clipping, groups, layer styles, 8, 16 and 32 bits.</li>
+          <li>Select subject, sky or an object with local AI; refine the edge for hair; content-aware fill with no credits.</li>
+          <li>Heal, clone, dodge and burn, frequency separation, liquify, warp: pen pressure throughout.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="feature flip">
+      <figure class="shot">
+        <img src="media/compose-type.webp" width="1600" height="1000" loading="lazy" alt="Compose: a tea plantation with an Arabic title, تلال الشاي, set in IBM Plex Sans Arabic over a rounded panel, and a subtitle mixing English and Arabic; the Type panel shows font, size, tracking, alignment and direction.">
+      </figure>
+      <div>
+        <p class="eyebrow">Type and files</p>
+        <h3>Arabic sets right the first time</h3>
+        <ul>
+          <li>Type shaped by HarfBuzz: Arabic joins, ligatures and mixed right-to-left lines, with no setting to switch.</li>
+          <li>Your installed fonts, or any font file; kerning, tracking, box text.</li>
+          <li>PSD in and out at 8, 16 and 32 bits with layers, groups, masks and modes; layered TIFF in.</li>
+          <li>A 50-layer, 24-megapixel document redraws in 7 ms: it is drawn at the size of your screen.</li>
+        </ul>
+      </div>
+    </article>
 
     <article class="feature">
       <figure class="shot">
@@ -129,6 +162,7 @@
       <div><dt>0.57 s</dt><dd>to export a 45 MP RAW as a full-resolution JPEG</dd></div>
       <div><dt>2.3 ms</dt><dd>of GPU time per frame while dragging a slider on a 45 MP file, eight masks included</dd></div>
       <div><dt>93 ms</dt><dd>to find the subject of a photo; 46 ms per click to select an object</dd></div>
+      <div><dt>6.7 ms</dt><dd>of GPU time per frame while painting into a 50&#8209;layer, 24 MP document</dd></div>
       <div><dt>1.0 GB</dt><dd>peak memory to open and export a 61 MP file</dd></div>
     </dl>
     <p class="fine">RTX 4070 SUPER, Chromium 151. Method and every number: <a href="https://github.com/ZahakJ/albedo/blob/main/docs/BENCHMARKS.md">BENCHMARKS.md</a>.</p>

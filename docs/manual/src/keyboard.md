@@ -6,7 +6,7 @@
 
 | key | |
 |---|---|
-| `G` `D` `E` | Library, Develop, Canvas |
+| `G` `D` `E` | Library, Develop, Compose |
 | `O` | open files |
 | `←` `→` | previous, next photo |
 | `⌘Z` `⇧⌘Z` | undo, redo |
@@ -43,3 +43,31 @@
 | `H` | heal and clone |
 | `[` `]` | brush size |
 | `⇧⌘R` | reset to the original |
+| `⌘⇧E` | edit in Compose |
+
+## Compose
+
+Photoshop's keys.
+
+| key | |
+|---|---|
+| `V` | move (`⌘T` free transform) |
+| `M` `L` `W` | marquee, lasso, magic wand (`⇧` cycles: ellipse, polygon, AI select) |
+| `C` | crop |
+| `B` `E` `R` | brush, eraser, smudge |
+| `S` `J` `O` | clone stamp, spot healing (`⇧J` healing brush), dodge and burn |
+| `G` `T` `U` `Q` | gradient, type, shape, liquify |
+| `I` `H` `Z` | eyedropper, hand, zoom; `Space` pans |
+| `[` `]` | brush size (`⇧[` `⇧]` hardness) |
+| `1`–`0` | opacity, 10% to 100% |
+| `X` `D` | swap colours, default colours |
+| `\` | paint on the mask or the pixels |
+| `⌘0` `⌘1` `⌘+` `⌘−` | fit, 100%, zoom in, zoom out |
+| `⌘J` `⌘G` `⇧⌘G` | duplicate, group, ungroup |
+| `⌥⌘G` | clipping mask |
+| `⌘E` `⇧⌘E` `⌥⇧⌘E` | merge down, merge visible, stamp visible |
+| `⌘A` `⌘D` `⇧⌘D` `⇧⌘I` | select all, deselect, reselect, inverse |
+| `⌘M` `⌘L` `⌘U` `⌘I` | curves, levels, hue/saturation, invert (as adjustment layers) |
+| `⌥⌫` `⌘⌫` `⌫` | fill with foreground, fill with background, clear |
+| `⌘Z` `⇧⌘Z` | undo, redo |
+| `⌘S` | save |

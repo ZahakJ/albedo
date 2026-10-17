@@ -8,6 +8,7 @@
 - [Masks](masks.md)
 - [Remove and heal](remove.md)
 - [AI Denoise](denoise.md)
+- [Compose](compose.md)
 - [Export](export.md)
 - [Lightroom and other programs](lightroom.md)
 - [Storage, backups and offline use](storage.md)

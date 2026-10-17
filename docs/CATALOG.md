@@ -1,6 +1,6 @@
 # Catalog and storage
 
-Everything albedo keeps lives in the browser's Origin Private File System (OPFS) for the page's origin: the original files, derived images, edit documents, presets and a SQLite database. The catalog worker is the only code that reads or writes it (`src/workers/catalog.worker.js`, helpers in `src/io/opfs.js`). Writes use sync access handles, which exist only in dedicated workers.
+Everything albedo keeps lives in the browser's Origin Private File System (OPFS) for the page's origin: the original files, derived images, edit documents, presets and a SQLite database. The catalog worker reads and writes everything but Compose's documents, which the render worker keeps (`src/workers/catalog.worker.js`, `src/compose/engine.js`, helpers in `src/io/opfs.js`). Writes use sync access handles, which exist only in dedicated workers.
 
 ## OPFS layout
 
@@ -15,7 +15,11 @@ Everything albedo keeps lives in the browser's Origin Private File System (OPFS)
 │                                    alpha = feathered hole)
 ├── profiles/<profileId>.dcp         imported DCP camera profiles, byte for byte
 ├── presets/<presetId>.json          user and imported presets
-├── canvasdocs/<docId>/              Canvas documents: doc.json, one PNG per layer, thumb.png
+├── composedocs/<docId>/             Compose documents: doc.json (the node tree and the format of
+│                                    each texture), <resId>.bin (a texture's raw pixels, deflated),
+│                                    thumb.jpg. Written by the render worker
+├── canvasdocs/<docId>/              documents of the old Canvas surface, migrated to Compose on
+│                                    first listing and marked migrated.txt
 └── albedo/.sahpool/                 SQLite's opfs-sahpool VFS files (catalog.db and journal)
 ```
 

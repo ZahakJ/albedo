@@ -88,13 +88,16 @@ kbd {
 
 .numbers { padding: 48px 0 64px; border-top: 1px solid var(--line); margin-top: 24px; }
 .numbers h2 { margin: 0 0 24px; font-size: 26px; }
-.numbers dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin: 0; }
+.numbers dl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin: 0; }
 .numbers dt { font-size: 32px; font-weight: 650; letter-spacing: -0.02em; }
 .numbers dd { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
 .fine { color: var(--muted); font-size: 14px; margin-top: 24px; }
 
 .site-footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
 
+@media (max-width: 1100px) {
+  .numbers dl { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 860px) {
   .feature { grid-template-columns: 1fr; gap: 20px; padding: 28px 0; }
   .feature.flip > figure { order: 0; }
