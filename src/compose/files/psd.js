@@ -332,7 +332,10 @@ export async function readPsd(bytes) {
       const key = r.ascii(4)
       const len = r.big && LONG_KEYS.has(key) ? r.u64() : r.u32()
       const end = r.p + len
-      if ((key === 'Lr16' || key === 'Lr32' || key === 'Layr') && !layers.length) layers = await readLayerInfo(r, depth, mode)
+      if ((key === 'Lr16' || key === 'Lr32' || key === 'Layr') && !layers.length) {
+        skipInnerLength(r, len)
+        layers = await readLayerInfo(r, depth, mode)
+      }
       r.p = end + (len % 4 && r.p < lmEnd ? 0 : 0)
       while (r.p < lmEnd && r.p % 2) r.p++
     }
@@ -588,7 +591,7 @@ export async function readTiffLayers(source, depth) {
         const len = r.u32()
         const end = r.p + len
         if (key === 'Layr' || key === 'Lr16' || key === 'Lr32') {
-          r.u32() // layer info length
+          skipInnerLength(r, len)
           const layers = await readLayerInfo(r, depth, 3)
           if (layers.length) return layers
         }
@@ -599,6 +602,14 @@ export async function readTiffLayers(source, depth) {
   }
   return null
 }
+// Writers differ on whether a layer block repeats the layer info's length
+// before the layer count: skip it when it is there (it then matches the
+// block, give or take padding)
+function skipInnerLength(r, blockLen) {
+  const v = r.dv.getUint32(r.p)
+  if (v > 0 && v <= blockLen - 4 && blockLen - 4 - v < 8) r.p += 4
+}
+
 // little-endian layer blocks are rare (Photoshop writes them in the file's
 // byte order); reading them would need every field swapped — not supported
 const swapBlocks = () => { throw new Error('little-endian layer data') }
