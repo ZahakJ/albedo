@@ -1,6 +1,22 @@
 // GPU uploads and readbacks for Compose. Readback goes through mapAsync in
 // strips of at most 64 MB, so no full-size staging buffer exists at once.
 
+// mapAsync, once more after the queue drains if it fails: Dawn has been
+// seen to refuse a map ("external Instance reference") right after another
+// context in the worker released its device
+async function mapRead(device, buf) {
+  try {
+    await buf.mapAsync(GPUMapMode.READ)
+  } catch (err) {
+    await device.queue.onSubmittedWorkDone().catch(() => {})
+    try {
+      await buf.mapAsync(GPUMapMode.READ)
+    } catch {
+      throw new Error(`GPU readback failed: ${err.message}`)
+    }
+  }
+}
+
 const BPP = { rgba8unorm: 4, rgba16float: 8, rgba32float: 16, r8unorm: 1, r16float: 2, r32float: 4, rg16float: 4, rg32float: 8 }
 const CH = { rgba8unorm: 4, rgba16float: 4, rgba32float: 4, r8unorm: 1, r16float: 1, r32float: 1, rg16float: 2, rg32float: 2 }
 
@@ -45,7 +61,7 @@ export async function readFloats(device, tex, rect = null, mipLevel = 0) {
     const enc = device.createCommandEncoder()
     enc.copyTextureToBuffer({ texture: tex, mipLevel, origin: [x, y + y0] }, { buffer: buf, bytesPerRow }, [w, n])
     device.queue.submit([enc.finish()])
-    await buf.mapAsync(GPUMapMode.READ)
+    await mapRead(device, buf)
     const raw = buf.getMappedRange()
     for (let r = 0; r < n; r++) {
       const o = (y0 + r) * w * ch
@@ -78,7 +94,7 @@ export async function readRaw(device, tex, rect = null) {
     const enc = device.createCommandEncoder()
     enc.copyTextureToBuffer({ texture: tex, origin: [x, y + y0] }, { buffer: buf, bytesPerRow }, [w, n])
     device.queue.submit([enc.finish()])
-    await buf.mapAsync(GPUMapMode.READ)
+    await mapRead(device, buf)
     const raw = new Uint8Array(buf.getMappedRange())
     for (let r = 0; r < n; r++) out.set(raw.subarray(r * bytesPerRow, r * bytesPerRow + w * bpp), (y0 + r) * w * bpp)
     buf.unmap()

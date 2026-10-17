@@ -29,7 +29,7 @@ const browser = await chromium.launch({ headless: false, args: ['--enable-unsafe
 const page = await browser.newPage({ viewport: { width: 1500, height: 950 } })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); else if (m.type() === 'warning' && /compose\]/.test(m.text())) console.log('[warn]', m.text().slice(0, 300)) })
 await page.goto(BASE)
 await page.waitForFunction(() => window.__albedo?.compose?.state().ready || window.__albedo?.compose?.state().error, null, { timeout: 30000 })
 if (await page.evaluate(() => window.__albedo.compose.state().error)) {
@@ -364,6 +364,22 @@ const catalogEdit = await C((id) => window.__albedo.loadDoc(id).then((x) => x?.m
 const layerEdit = (await doc()).nodes[0].smart.edit?.modules?.bw?.on
 check('smart object: edited in Develop, back in Compose, re-developed', colour && grey && layerEdit === 1, `${fmt(sp0)} → ${fmt(sp1)}`)
 check("smart object: the catalog's own edit is untouched", catalogEdit === 0)
+
+// ── .albedo: everything, smart object original included ────────────────────
+const ab = await C(async () => {
+  const c = window.__albedo.compose
+  const d = c.state().doc
+  const blob = await window.__composeUi.albedoFile(d)
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const size = bytes.length // importFile transfers (detaches) the buffer
+  await c.request({ type: 'coClose' })
+  await c.importFile(bytes, 'reopened', 'albedo')
+  const d2 = c.state().doc
+  return { size, kinds: d2.nodes.map((n) => n.kind), edit: d2.nodes[0].smart?.edit?.modules?.bw?.on }
+})
+await page.waitForTimeout(2000)
+const ap = await px((await doc()).width / 2, (await doc()).height / 2)
+check('.albedo keeps the smart object, its edit and its original', ab.size > 5e6 && ab.kinds[0] === 'smart' && ab.edit === 1 && near(ap.slice(0, 3), sp1.slice(0, 3), 1 / 255), `${(ab.size / 2 ** 20).toFixed(1)} MB, ${fmt(ap)}`)
 
 await page.screenshot({ path: `${shots}/compose-ui.png` })
 check('no page errors', errors.length === 0, errors.slice(0, 5).join(' | '))

@@ -50,7 +50,13 @@ async function albedoFile(doc) {
     try {
       const { buffer, name } = await loadOriginal(id)
       entries.push({ name: `originals/${id}/${name}`, data: new Uint8Array(buffer) })
-    } catch { /* not in the catalog: the document still opens, without that source */ }
+    } catch (err) {
+      // not in the catalog: the document still opens, without that source
+      console.warn('[compose] smart object original not embedded', id, err)
+    }
   }
   return new Blob([zipWrite(entries)], { type: 'application/x-albedo' })
 }
+
+// e2e reaches the .albedo writer through here
+if (typeof window !== 'undefined') window.__composeUi = { ...(window.__composeUi ?? {}), albedoFile }
