@@ -4,16 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>albedo</title>
-<meta name="description" content="A RAW photo developer and layered editor that runs in the browser: GPU develop, layers with RAW smart objects, local AI masks, fill and denoise, Lightroom XMP and PSD in and out. Offline, private, AGPL.">
+<meta name="description" content="A RAW developer and compositor that runs entirely in your browser: GPU develop, layers with the RAW inside, local AI masks, fill and denoise, Lightroom XMP and PSD in and out. Offline, private, AGPL.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f4f4f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1c1c" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
 <meta property="og:title" content="albedo">
-<meta property="og:description" content="A RAW developer and layered editor that runs in the browser. Local AI, Lightroom XMP and PSD in and out, offline.">
-<meta property="og:image" content="https://zahakj.github.io/albedo/media/banner.webp">
-<meta property="og:image:width" content="1640">
-<meta property="og:image:height" content="640">
+<meta property="og:description" content="A RAW developer and compositor that runs entirely in your browser.">
+<meta property="og:url" content="https://zahakj.github.io/albedo/">
+<meta property="og:image" content="https://zahakj.github.io/albedo/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The albedo flask mark and name beside the Develop view, a hibiscus on screen">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -39,15 +41,15 @@
 
 <section class="hero" aria-labelledby="hero-title">
   <div class="wrap">
-    <h1 id="hero-title">Develop and retouch in your browser.</h1>
-    <p class="lede">Catalog, cull and develop RAW on the GPU, then work in layers with the RAW still inside. Mask, fill and denoise with AI that never leaves your machine. Take your work to Lightroom and Photoshop and back.</p>
+    <h1 id="hero-title">A RAW developer and compositor that runs entirely in your browser.</h1>
+    <p class="lede">Develop on the GPU, then work in layers with the RAW still inside. The AI runs on your machine. Nothing is uploaded, and there is no account.</p>
     <div class="actions">
       <a class="button primary" href="./app/">Open albedo</a>
-      <a class="button" href="./manual/">Read the manual</a>
+      <a class="button" href="./manual/">Manual</a>
       <a class="button" href="https://github.com/ZahakJ/albedo">Source</a>
     </div>
     <figure class="shot">
-      <img src="media/banner.webp" width="1640" height="640" alt="Compose: a RAW photo of rainbow lorikeets as a smart object. A Develop adjustment layer, masked to the background by AI subject selection, dims and desaturates it; type in English and Arabic sits over the photo. Develop's Tone panel and the layer stack are on the right.">
+      <img src="media/develop.webp" width="1600" height="1000" alt="Develop: a hibiscus with the Punchy preset applied. Navigator and presets on the left, histogram, profile and Tone sliders on the right, the filmstrip below.">
     </figure>
   </div>
 </section>
@@ -58,97 +60,48 @@
 
     <article class="feature">
       <figure class="shot">
-        <img src="media/compose.webp" width="1600" height="1000" loading="lazy" alt="Compose: a bowl of fruit and vegetables. The lemon, selected with one click by AI object selection and outlined by marching ants, is turned lime green by a masked Hue/Saturation layer; Develop and Curves adjustment layers sit above, the RAW below as a smart object.">
-      </figure>
-      <div>
-        <p class="eyebrow">Compose</p>
-        <h3>Layers, with the RAW still inside</h3>
-        <ul>
-          <li>A photo comes from Develop as a smart object: change its development any time, with no file in between.</li>
-          <li>Every Develop control as an adjustment layer, plus Curves, Levels, Hue/Saturation and the rest, through masks and Blend If.</li>
-          <li>All 27 Photoshop blend modes, clipping, groups, layer styles, 8, 16 and 32 bits.</li>
-          <li>Select subject, sky or an object with local AI; refine the edge for hair; content-aware fill with no credits.</li>
-          <li>Heal, clone, dodge and burn, frequency separation, liquify, warp: pen pressure throughout.</li>
-        </ul>
-      </div>
-    </article>
-
-    <article class="feature flip">
-      <figure class="shot">
-        <img src="media/compose-type.webp" width="1600" height="1000" loading="lazy" alt="Compose: a tea plantation with an Arabic title, تلال الشاي, set in IBM Plex Sans Arabic over a rounded panel, and a subtitle mixing English and Arabic; the Type panel shows font, size, tracking, alignment and direction.">
-      </figure>
-      <div>
-        <p class="eyebrow">Type and files</p>
-        <h3>Arabic sets right the first time</h3>
-        <ul>
-          <li>Type shaped by HarfBuzz: Arabic joins, ligatures and mixed right-to-left lines, with no setting to switch.</li>
-          <li>Your installed fonts, or any font file; kerning, tracking, box text.</li>
-          <li>PSD in and out at 8, 16 and 32 bits with layers, groups, masks and modes; layered TIFF in.</li>
-          <li>A 50-layer, 24-megapixel document redraws in 7 ms: it is drawn at the size of your screen.</li>
-        </ul>
-      </div>
-    </article>
-
-    <article class="feature">
-      <figure class="shot">
-        <img src="media/library.webp" width="1600" height="1000" loading="lazy" alt="The Library: a grid of photos with flags and star ratings, the date tree on the left and file details on the right.">
-      </figure>
-      <div>
-        <p class="eyebrow">Library</p>
-        <h3>Cull from the keyboard</h3>
-        <ul>
-          <li><kbd>P</kbd> <kbd>X</kbd> <kbd>U</kbd> flag, <kbd>0</kbd>–<kbd>5</kbd> rate, <kbd>6</kbd>–<kbd>9</kbd> label.</li>
-          <li>Full-screen cull, compare and survey; the next photos are ready before you get there.</li>
-          <li>Albums, smart collections, keywords, a capture-date tree.</li>
-          <li>10,000 photos filter in about 15 ms.</li>
-        </ul>
-      </div>
-    </article>
-
-    <article class="feature flip">
-      <figure class="shot">
-        <img src="media/masks.webp" width="1600" height="1000" loading="lazy" alt="Masking: a lake at dawn with the sky selected by the AI sky mask, shown as a red wash.">
-      </figure>
-      <div>
-        <p class="eyebrow">Local AI</p>
-        <h3>Masks, Remove and Denoise, on your GPU</h3>
-        <ul>
-          <li>Subject, sky, background, or any object from a click or a box.</li>
-          <li>Remove: paint over a distraction, or click it, and it is filled from its surroundings.</li>
-          <li>AI Denoise works on the RAW data; 45 megapixels in about four seconds.</li>
-          <li>No account, no credits, no upload.</li>
-        </ul>
-      </div>
-    </article>
-
-    <article class="feature">
-      <figure class="shot">
-        <img src="media/develop.webp" width="1600" height="1000" loading="lazy" alt="Develop: a motorcycle on autumn leaves; the Lens panel names the matched lens profile.">
+        <img src="media/masks.webp" width="1600" height="1000" loading="lazy" alt="Develop with masks: a lake at dawn, the sky selected by the AI sky mask and shown as a red wash; the Masks panel on the right.">
       </figure>
       <div>
         <p class="eyebrow">Develop</p>
         <h3>Every slider in the next frame</h3>
         <ul>
-          <li>The whole edit runs on the GPU: about 2 ms a frame on a 61-megapixel file.</li>
-          <li>RCD demosaicing, a GPU X-Trans path, highlights rebuilt instead of turning magenta.</li>
-          <li>An AgX look by default, or Adobe and RawTherapee camera profiles.</li>
-          <li>Lens corrections from the lensfun database, applied on open.</li>
+          <li>The whole edit runs on the GPU: 2.4 ms a frame on 24 MP, 2.3 ms on 45 MP with eight masks.</li>
+          <li>Masks for subject, sky, background or any object you click. The subject takes 93 ms.</li>
+          <li>Remove, heal and AI Denoise on the RAW data, 45 MP in 3.8 s.</li>
+          <li>RCD and X-Trans demosaicing, highlight rebuilding, lensfun corrections, AgX or DCP profiles.</li>
         </ul>
       </div>
     </article>
 
     <article class="feature flip">
       <figure class="shot">
-        <img src="media/export.webp" width="1600" height="1000" loading="lazy" alt="The export dialog: JPEG, PNG, TIFF, DNG and Original formats, and an XMP sidecar option.">
+        <img src="media/compose.webp" width="1600" height="1000" loading="lazy" alt="Compose: a bowl of fruit and vegetables. The lemon, selected with one click by AI object selection, is turned lime green by a masked Hue/Saturation layer; Develop and Curves adjustment layers sit above, the RAW below as a smart object.">
       </figure>
       <div>
-        <p class="eyebrow">No lock-in</p>
-        <h3>Your files, your edits, anywhere</h3>
+        <p class="eyebrow">Compose</p>
+        <h3>Layers, with the RAW still inside</h3>
         <ul>
-          <li>Lightroom and Camera Raw <code>.xmp</code> sidecars and presets, read and written.</li>
-          <li>Export the original with a sidecar, a DNG with the edit inside, or a 16-bit TIFF.</li>
-          <li>Installs as an app, works offline, opens RAW files from the desktop.</li>
-          <li>Free software under the AGPL.</li>
+          <li>A photo arrives from Develop as a smart object: change its development at any time.</li>
+          <li>Develop and Photoshop-style adjustment layers, masks, Blend If, 27 blend modes, groups, styles, 8, 16 or 32 bits.</li>
+          <li>AI selection, refine edge, content-aware fill, heal, clone, liquify, warp, brushes with pen pressure.</li>
+          <li>A 50-layer, 24 MP document redraws in 6.7 ms.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="feature">
+      <figure class="shot">
+        <img src="media/compose-type.webp" width="1600" height="1000" loading="lazy" alt="Compose: a tea plantation with an Arabic title, تلال الشاي, set in IBM Plex Sans Arabic over a rounded panel, and a subtitle mixing English and Arabic; the Type panel shows font, size, tracking, alignment and direction.">
+      </figure>
+      <div>
+        <p class="eyebrow">Type and files</p>
+        <h3>Arabic sets right, files go anywhere</h3>
+        <ul>
+          <li>Type shaped by HarfBuzz: Arabic joins and mixed-direction lines with no setting to switch.</li>
+          <li>PSD in and out with layers, masks and modes. Layered TIFF in.</li>
+          <li>Lightroom XMP sidecars and presets, read and written. DNG and 16-bit TIFF out.</li>
+          <li>A Library to cull from the keyboard: 10,000 photos filter in 12–19 ms.</li>
         </ul>
       </div>
     </article>
@@ -165,7 +118,7 @@
       <div><dt>6.7 ms</dt><dd>of GPU time per frame while painting into a 50&#8209;layer, 24 MP document</dd></div>
       <div><dt>1.0 GB</dt><dd>peak memory to open and export a 61 MP file</dd></div>
     </dl>
-    <p class="fine">RTX 4070 SUPER, Chromium 151. Method and every number: <a href="https://github.com/ZahakJ/albedo/blob/main/docs/BENCHMARKS.md">BENCHMARKS.md</a>.</p>
+    <p class="fine">RTX 4070 SUPER, Chromium 151. Method and every number: <a href="https://github.com/ZahakJ/albedo/blob/main/docs/BENCHMARKS.md">BENCHMARKS.md</a>. Needs WebGPU (Chrome or Edge 113+, Safari 26, Firefox 141+); Library and Develop also run on WebGL2.</p>
   </div>
 </section>
 
