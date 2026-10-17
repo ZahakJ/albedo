@@ -351,7 +351,7 @@ export function paintPlugin() {
     const levels = []
     let w = r[2], h = r[3]
     const seed = E.C.createTex(w, h, 'rgba16float', false)
-    runPaint('fs_heal_seed', seed, [[1, E.C.level0(s.orig)], [2, s.source.createView({ baseMipLevel: 0, mipLevelCount: 1 })], [5, E.C.level0(s.buf)]],
+    runPaint('fs_heal_seed', seed, [[2, s.source.createView({ baseMipLevel: 0, mipLevelCount: 1 })], [5, E.C.level0(s.buf)]],
       [0, 0, 0, 0, 0, 0, 0, 0, r[0], r[1], s.cloneOff?.[0] ?? 0, s.cloneOff?.[1] ?? 0])
     levels.push(seed)
     while (w > 1 || h > 1) {
@@ -402,10 +402,10 @@ export function paintPlugin() {
 
   function end() {
     const s = stroke
+    if (!s) { E.interacting = null; return }
+    if (s.tool === 'heal') heal() // reads the live stroke
     stroke = null
     E.interacting = null
-    if (!s) return
-    if (s.tool === 'heal') heal()
     s.carried?.destroy()
     if (s.source && s.source !== s.orig) s.source.destroy()
     if (!s.dirty) {

@@ -147,22 +147,23 @@ fn fs_res_dodge(in: FOut) -> @location(0) vec4f {
 }
 
 // ── heal: pull-push of the boundary difference ─────────────────────────────
-// seed (rect-sized): srcTex = snapshot (before), bufTex = the clone source,
-// covTex = the clone stroke buffer (alpha = coverage). Outside the stroke
-// the difference between the destination and the source it was cloned from
-// is known; inside it is spread by the pull-push below. k2.xy = rect origin
-// (target px), k2.zw = clone offset (px)
+// seed (rect-sized): bufTex = the clone source (the layer itself, or the
+// composite of the layers sampled), covTex = the clone stroke buffer (alpha
+// = coverage). Outside the stroke the difference between the destination
+// and the place it was cloned from is known — both read from the source,
+// so healing onto an empty layer matches the image below; inside it is
+// spread by the pull-push below. k2.xy = rect origin (target px), k2.zw =
+// clone offset (px)
 @group(0) @binding(5) var covTex: texture_2d<f32>;
 @fragment
 fn fs_heal_seed(in: FOut) -> @location(0) vec4f {
   let q = vec2i(in.p.xy) + vec2i(R.k2.xy);
-  let before = textureLoad(srcTex, q, 0);
   let dimS = vec2i(textureDimensions(bufTex));
-  let sq = clamp(q + vec2i(round(R.k2.zw)), vec2i(0), dimS - 1);
-  let src = textureLoad(bufTex, sq, 0);
+  let dst = textureLoad(bufTex, clamp(q, vec2i(0), dimS - 1), 0);
+  let src = textureLoad(bufTex, clamp(q + vec2i(round(R.k2.zw)), vec2i(0), dimS - 1), 0);
   let cov = textureLoad(covTex, q, 0).a;
   let w = select(0.0, 1.0, cov < 0.02);
-  return vec4f((before.rgb - src.rgb) * w, w);
+  return vec4f((dst.rgb - src.rgb) * w, w);
 }
 // 2× down: average of weighted colour and weights
 @fragment
