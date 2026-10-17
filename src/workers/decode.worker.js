@@ -178,7 +178,20 @@ function blackOf(r, cd) {
   if (v.length < 100) return 0
   v.sort((a, b) => a - b)
   const med = v[v.length >> 1]
-  return med > 0 && med < 0.25 * (cd.maximum || 65535) ? med : 0
+  if (!(med > 0 && med < 0.25 * (cd.maximum || 65535))) return 0
+  // Some bodies' margins are not optical black (the Nikon D5000's read
+  // about 256 over a true black of 0). A real black level has almost no
+  // image photosites well below it; if more than 2% are, trust LibRaw's 0.
+  const step2 = Math.max(1, Math.floor((r.width * r.height) / 200000))
+  let below = 0
+  let n = 0
+  for (let i = 0; i < r.width * r.height; i += step2) {
+    const x = i % r.width
+    const y = (i / r.width) | 0
+    if (d[(y + T) * W + x + L] < med * 0.9) below++
+    n++
+  }
+  return below / n > 0.02 ? 0 : med
 }
 
 function mosaicPayload(photoId, r, meta) {
@@ -292,6 +305,11 @@ async function decode({ photoId, buffer, name, quality }) {
     await raw.open(bytes, FALLBACK_RGB_SETTINGS)
     const meta2 = await raw.metadata(true)
     const img = await raw.imageData()
+    if (!img?.data) {
+      // e.g. Nikon's High Efficiency NEF, whose codec LibRaw does not have
+      const cam = [meta2?.make, meta2?.model].filter(Boolean).join(' ')
+      throw new Error(`LibRaw cannot decode this file${cam ? ` (${cam})` : ''}; its thumbnail is all albedo can show`)
+    }
     return rgbPayload(photoId, img, meta2)
   } finally {
     raw.dispose()
