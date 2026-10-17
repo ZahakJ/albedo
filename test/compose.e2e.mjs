@@ -404,10 +404,16 @@ const v0 = await C(() => window.__albedo.compose.state().view)
 const at = (dx, dy) => ({ offX: v0.offX * 2 - 300 + dx, offY: v0.offY * 2 - 200 + dy })
 await setV({ zoom: v0.zoom * 2, ...at(0, 0) })
 await page.waitForTimeout(1200) // sharp, then the margin grows
+const settled = await stageShot()
 await setV(at(-120, -40))
 await page.waitForTimeout(80) // inside the margin: presented from the cache
 const inMargin = await stageShot()
 const dIn = shiftDiff(await fresh(), inMargin, 0, 0)
+// and a pan moves the picture by exactly the pan: the canvas is never resampled
+await setV(at(-700, -40))
+await page.waitForTimeout(600)
+const far = await stageShot()
+const dMoved = Math.max(shiftDiff(settled, inMargin, -120, -40), shiftDiff(settled, far, -700, -40))
 await setV(at(-120.5, -40)) // half a pixel: shown softened, then composited sharp
 await page.waitForTimeout(800)
 const halfPx = await stageShot()
@@ -417,6 +423,7 @@ await page.waitForTimeout(800)
 const zoomed = await stageShot()
 const dZoom = shiftDiff(await fresh(), zoomed, 0, 0)
 check('the view cache shows what a full redraw shows (pan, half-pixel pan, zoom)', dIn <= 2 && dHalf <= 2 && dZoom <= 2, `max difference ${dIn}, ${dHalf}, ${dZoom} levels`)
+check('a pan moves the picture by exactly the pan', dMoved <= 2, `max difference ${dMoved} levels`)
 
 // ── the UI itself: mouse and keys, as a person uses it ─────────────────────
 await newDoc(800, 600, { background: 'white' })

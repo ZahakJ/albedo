@@ -253,7 +253,9 @@ export function createComposeEngine(host) {
   }
 
   // ── view and frames ──────────────────────────────────────────────────────
-  const targetSize = () => [Math.max(1, Math.round(view.cssW * view.dpr)), Math.max(1, Math.round(view.cssH * view.dpr))]
+  // whole device pixels: the canvas is shown at exactly this size (see
+  // ComposeSurface), so the browser never resamples it
+  const targetSize = () => [Math.max(1, Math.floor(view.cssW * view.dpr + 1e-3)), Math.max(1, Math.floor(view.cssH * view.dpr + 1e-3))]
   const viewXf = () => [view.zoom * view.dpr, view.zoom * view.dpr, view.offX * view.dpr, view.offY * view.dpr]
 
   // ── frames and the view cache ────────────────────────────────────────────

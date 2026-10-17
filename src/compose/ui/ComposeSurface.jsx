@@ -36,6 +36,15 @@ export default function ComposeSurface({ canvasRef, active }) {
       const r = el.getBoundingClientRect()
       if (r.width < 2) return
       const bg = getComputedStyle(el).backgroundColor.match(/\d+/g)?.slice(0, 3).map((v) => v / 255)
+      // the canvas takes whole device pixels, at exactly that size: a canvas
+      // stretched to a fractional stage would be resampled, softening every
+      // frame and sliding content by up to half a pixel across the stage
+      const dpr = Math.min(devicePixelRatio, 2)
+      const cv = canvasRef.current
+      if (cv) {
+        cv.style.width = `${Math.floor(r.width * dpr + 1e-3) / dpr}px`
+        cv.style.height = `${Math.floor(r.height * dpr + 1e-3) / dpr}px`
+      }
       setStage(r.width, r.height, bg)
     }
     const obs = new ResizeObserver(push)

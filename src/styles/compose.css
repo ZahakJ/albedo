@@ -95,7 +95,7 @@
   background: var(--g-well);
   touch-action: none;
 }
-.co-view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.co-view { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
 .co-stage[data-cursor='move'] { cursor: move; }
 .co-stage[data-cursor='grab'] { cursor: grab; }
 .co-stage[data-cursor='grab']:active { cursor: grabbing; }
